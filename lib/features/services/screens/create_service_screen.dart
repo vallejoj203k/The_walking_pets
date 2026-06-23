@@ -43,7 +43,7 @@ class _CreateServiceScreenState extends State<CreateServiceScreen> {
     final userId = context.read<AuthProvider>().userModel!.id;
     final data = await context
         .read<ServicesProvider>()
-        ._getWalkerIdByUserId(userId);
+        .getWalkerIdByUserId(userId);
     setState(() => _walkerId = data);
   }
 

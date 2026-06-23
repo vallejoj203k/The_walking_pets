@@ -203,7 +203,7 @@ class ServicesProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> _getWalkerIdByUserId(String userId) async {
+  Future<String?> getWalkerIdByUserId(String userId) async {
     try {
       final data = await SupabaseService.client
           .from('walkers')
