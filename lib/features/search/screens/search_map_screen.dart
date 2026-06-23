@@ -15,6 +15,7 @@ class SearchMapScreen extends StatefulWidget {
 
 class _SearchMapScreenState extends State<SearchMapScreen> {
   GoogleMapController? _mapCtrl;
+  final Completer<GoogleMapController> _mapCompleter = Completer();
   Set<Marker> _markers = {};
   Timer? _refreshTimer;
 
@@ -22,13 +23,27 @@ class _SearchMapScreenState extends State<SearchMapScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<LocationProvider>().initialize();
+      final locationProvider = context.read<LocationProvider>();
+      await locationProvider.initialize();
+      _mapCtrl = await _mapCompleter.future;
+      _moveToCurrentLocation(locationProvider);
       _loadMarkers();
       _refreshTimer = Timer.periodic(
         const Duration(seconds: MapsConfig.locationUpdateIntervalSeconds),
         (_) => _loadMarkers(),
       );
     });
+  }
+
+  void _moveToCurrentLocation(LocationProvider locationProvider) {
+    _mapCtrl?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(locationProvider.currentLat, locationProvider.currentLng),
+          zoom: 14,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadMarkers() async {
@@ -97,22 +112,24 @@ class _SearchMapScreenState extends State<SearchMapScreen> {
           ),
         ],
       ),
-      body: location.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
+      body: Stack(
               children: [
                 GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(
-                        location.currentLat, location.currentLng),
+                  initialCameraPosition: const CameraPosition(
+                    target: LatLng(MapsConfig.defaultLat, MapsConfig.defaultLng),
                     zoom: 13,
                   ),
-                  onMapCreated: (ctrl) => _mapCtrl = ctrl,
+                  onMapCreated: (ctrl) {
+                    _mapCtrl = ctrl;
+                    if (!_mapCompleter.isCompleted) _mapCompleter.complete(ctrl);
+                  },
                   markers: _markers,
                   myLocationEnabled: true,
                   myLocationButtonEnabled: true,
                   zoomControlsEnabled: true,
                 ),
+                if (location.isLoading)
+                  const Center(child: CircularProgressIndicator()),
                 Positioned(
                   bottom: 16,
                   left: 16,
