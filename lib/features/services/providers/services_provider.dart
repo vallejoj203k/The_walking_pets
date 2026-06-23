@@ -114,26 +114,33 @@ class ServicesProvider extends ChangeNotifier {
     try {
       final id = _uuid.v4();
       final now = DateTime.now().toIso8601String();
-      final data = {
+      final data = <String, dynamic>{
         'id': id,
         'walker_id': walkerId,
         'type': type,
         'price': price,
-        'price_small': priceSmall,
-        'price_medium': priceMedium,
-        'price_large': priceLarge,
-        'description': description,
         'is_active': true,
         'created_at': now,
         'updated_at': now,
       };
+      if (priceSmall != null) data['price_small'] = priceSmall;
+      if (priceMedium != null) data['price_medium'] = priceMedium;
+      if (priceLarge != null) data['price_large'] = priceLarge;
+      if (description != null) data['description'] = description;
+
       await SupabaseService.client.from('services').insert(data);
-      _myServices.add(ServiceModel.fromMap({...data}));
+      _myServices.add(ServiceModel.fromMap({
+        ...data,
+        'price_small': priceSmall,
+        'price_medium': priceMedium,
+        'price_large': priceLarge,
+        'description': description,
+      }));
       _error = null;
       _setLoading(false);
       return true;
     } catch (e) {
-      _error = 'Error al crear servicio.';
+      _error = 'Error al crear servicio: $e';
       debugPrint('[ServicesProvider] createService: $e');
       _setLoading(false);
       return false;
@@ -151,7 +158,7 @@ class ServicesProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     try {
-      final data = {
+      final data = <String, dynamic>{
         'type': type,
         'price': price,
         'price_small': priceSmall,
@@ -178,7 +185,8 @@ class ServicesProvider extends ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      _error = 'Error al actualizar servicio.';
+      _error = 'Error al actualizar servicio: $e';
+      debugPrint('[ServicesProvider] updateService: $e');
       _setLoading(false);
       return false;
     }
