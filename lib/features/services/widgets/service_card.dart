@@ -50,7 +50,7 @@ class ServiceCard extends StatelessWidget {
                       Text(service.typeLabel,
                           style: AppTextStyles.heading3),
                       Text(
-                        '\$${service.price.toStringAsFixed(0)} COP/hora',
+                        service.priceSummary,
                         style: AppTextStyles.body
                             .copyWith(color: AppColors.primary),
                       ),

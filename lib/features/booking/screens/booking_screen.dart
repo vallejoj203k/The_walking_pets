@@ -6,6 +6,7 @@ import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../core/models/service_model.dart';
 import '../../../core/models/walker_model.dart';
+import '../../../core/models/pet_model.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../config/theme/app_colors.dart';
@@ -148,8 +149,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     _Row('Paseador', widget.walker.name),
                     _Row('Servicio',
                         '${widget.service.typeEmoji} ${widget.service.typeLabel}'),
-                    _Row('Precio',
-                        '\$${widget.service.price.toStringAsFixed(0)} COP/hora'),
+                    _Row('Precio', _priceDisplay(profile.pets)),
                   ],
                 ),
               ),
@@ -237,6 +237,19 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       ),
     );
+  }
+
+  String _priceDisplay(List<PetModel> pets) {
+    if (widget.service.type == 'baño' && _selectedPetId != null) {
+      final idx = pets.indexWhere((p) => p.id == _selectedPetId);
+      if (idx != -1) {
+        final p = widget.service.priceForSize(pets[idx].size);
+        if (p != null) {
+          return '\$${p.toStringAsFixed(0)} COP (${_capitalize(pets[idx].size)})';
+        }
+      }
+    }
+    return widget.service.priceSummary;
   }
 
   String _capitalize(String s) =>

@@ -105,6 +105,9 @@ class ServicesProvider extends ChangeNotifier {
     required String walkerId,
     required String type,
     required double price,
+    double? priceSmall,
+    double? priceMedium,
+    double? priceLarge,
     String? description,
   }) async {
     _setLoading(true);
@@ -116,6 +119,9 @@ class ServicesProvider extends ChangeNotifier {
         'walker_id': walkerId,
         'type': type,
         'price': price,
+        'price_small': priceSmall,
+        'price_medium': priceMedium,
+        'price_large': priceLarge,
         'description': description,
         'is_active': true,
         'created_at': now,
@@ -138,6 +144,9 @@ class ServicesProvider extends ChangeNotifier {
     required String serviceId,
     required String type,
     required double price,
+    double? priceSmall,
+    double? priceMedium,
+    double? priceLarge,
     String? description,
   }) async {
     _setLoading(true);
@@ -145,6 +154,9 @@ class ServicesProvider extends ChangeNotifier {
       final data = {
         'type': type,
         'price': price,
+        'price_small': priceSmall,
+        'price_medium': priceMedium,
+        'price_large': priceLarge,
         'description': description,
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -157,6 +169,9 @@ class ServicesProvider extends ChangeNotifier {
       if (idx != -1) {
         _myServices[idx].type = type;
         _myServices[idx].price = price;
+        _myServices[idx].priceSmall = priceSmall;
+        _myServices[idx].priceMedium = priceMedium;
+        _myServices[idx].priceLarge = priceLarge;
         _myServices[idx].description = description;
       }
       _error = null;
