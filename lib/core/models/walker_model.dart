@@ -7,6 +7,8 @@ class WalkerModel {
   List<String> services;
   double? hourlyRate;
   String? coverageZone;
+  double? homeLat;
+  double? homeLng;
   bool verified;
   final DateTime createdAt;
   DateTime updatedAt;
@@ -20,10 +22,14 @@ class WalkerModel {
     this.services = const [],
     this.hourlyRate,
     this.coverageZone,
+    this.homeLat,
+    this.homeLng,
     this.verified = false,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  bool get hasHomeLocation => homeLat != null && homeLng != null;
 
   factory WalkerModel.fromMap(Map<String, dynamic> map) {
     List<String> services = [];
@@ -41,6 +47,8 @@ class WalkerModel {
           ? (map['hourly_rate'] as num).toDouble()
           : null,
       coverageZone: map['coverage_zone'] as String?,
+      homeLat: map['home_lat'] != null ? (map['home_lat'] as num).toDouble() : null,
+      homeLng: map['home_lng'] != null ? (map['home_lng'] as num).toDouble() : null,
       verified: map['verified'] as bool? ?? false,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -57,6 +65,8 @@ class WalkerModel {
       'services': services,
       'hourly_rate': hourlyRate,
       'coverage_zone': coverageZone,
+      'home_lat': homeLat,
+      'home_lng': homeLng,
       'verified': verified,
       'updated_at': DateTime.now().toIso8601String(),
     };

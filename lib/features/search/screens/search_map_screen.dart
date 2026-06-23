@@ -50,30 +50,43 @@ class _SearchMapScreenState extends State<SearchMapScreen> {
     if (!mounted) return;
     final locationProvider = context.read<LocationProvider>();
     final nearby = await locationProvider.getNearbyWalkers();
+    final homes = await locationProvider.getWalkerHomes();
 
     final markers = <Marker>{};
 
-    // Marcador del usuario
+    // Marcador del usuario (azul)
     markers.add(Marker(
       markerId: const MarkerId('me'),
-      position: LatLng(
-          locationProvider.currentLat, locationProvider.currentLng),
-      icon: BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueBlue),
+      position: LatLng(locationProvider.currentLat, locationProvider.currentLng),
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       infoWindow: const InfoWindow(title: 'Mi ubicación'),
     ));
 
-    // Marcadores de paseadores
+    // Residencias de paseadores (verde)
+    for (final home in homes) {
+      final lat = (home['home_lat'] as num).toDouble();
+      final lng = (home['home_lng'] as num).toDouble();
+      final name = home['name'] as String? ?? 'Paseador';
+      markers.add(Marker(
+        markerId: MarkerId('home_${home['id']}'),
+        position: LatLng(lat, lng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: InfoWindow(
+          title: '🏠 $name',
+          snippet: 'Residencia del paseador',
+        ),
+      ));
+    }
+
+    // Paseadores activos en tiempo real (naranja)
     for (final walker in nearby) {
       markers.add(Marker(
-        markerId: MarkerId(walker.walkerId),
+        markerId: MarkerId('live_${walker.walkerId}'),
         position: LatLng(walker.latitude, walker.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
         infoWindow: InfoWindow(
-          title: 'Paseador',
-          snippet:
-              'Actualizado: ${_timeAgo(walker.lastUpdated)}',
+          title: '🟠 Paseador activo',
+          snippet: 'Actualizado: ${_timeAgo(walker.lastUpdated)}',
         ),
       ));
     }
@@ -138,7 +151,7 @@ class _SearchMapScreenState extends State<SearchMapScreen> {
                         horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -146,28 +159,42 @@ class _SearchMapScreenState extends State<SearchMapScreen> {
                         ),
                       ],
                     ),
-                    child: Row(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            color: Colors.orange,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${_markers.where((m) => m.markerId.value != 'me').length} paseadores cercanos',
-                          style: const TextStyle(fontSize: 13),
-                        ),
+                        _LegendItem(color: Colors.green, label: 'Residencia'),
+                        const SizedBox(height: 4),
+                        _LegendItem(color: Colors.orange, label: 'Activo ahora'),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 }

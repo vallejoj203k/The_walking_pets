@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/profile_photo_picker.dart';
 import '../widgets/editable_field.dart';
@@ -29,6 +30,7 @@ class _WalkerProfileScreenState extends State<WalkerProfileScreen> {
   final _zoneCtrl = TextEditingController();
   List<String> _selectedServices = [];
   File? _photoFile;
+  bool _savingLocation = false;
   @override
   void initState() {
     super.initState();
@@ -100,6 +102,64 @@ class _WalkerProfileScreenState extends State<WalkerProfileScreen> {
   Future<void> _pickPhoto() async {
     final file = await ProfilePhotoPicker.pickImage();
     if (file != null) setState(() => _photoFile = file);
+  }
+
+  Future<void> _setHomeLocation() async {
+    final walker = context.read<ProfileProvider>().walker;
+    if (walker == null) return;
+
+    setState(() => _savingLocation = true);
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permiso de ubicación requerido'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (!mounted) return;
+      final success = await context.read<ProfileProvider>().saveHomeLocation(
+            walkerId: walker.id,
+            lat: pos.latitude,
+            lng: pos.longitude,
+          );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? '📍 Residencia guardada exitosamente'
+                : 'Error al guardar ubicación'),
+            backgroundColor: success ? AppColors.success : AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo obtener tu ubicación'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingLocation = false);
+    }
   }
 
   @override
@@ -186,7 +246,63 @@ class _WalkerProfileScreenState extends State<WalkerProfileScreen> {
                         style: AppTextStyles.heading3),
                     const SizedBox(height: 12),
                     _buildServicesSection(),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    // Ubicación de residencia
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.inputBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.home_outlined,
+                                  color: AppColors.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Text('Ubicación de residencia',
+                                  style: AppTextStyles.heading3),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            profile.walker?.hasHomeLocation == true
+                                ? '✅ Residencia registrada en el mapa'
+                                : 'Los dueños podrán ver dónde vives en el mapa',
+                            style: AppTextStyles.bodySecondary,
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _savingLocation ? null : _setHomeLocation,
+                              icon: _savingLocation
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.my_location),
+                              label: Text(_savingLocation
+                                  ? 'Obteniendo ubicación...'
+                                  : 'Usar mi ubicación actual'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(
+                                    color: AppColors.primary),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     CustomElevatedButton(
                       label: widget.isEditing
                           ? 'Guardar cambios'

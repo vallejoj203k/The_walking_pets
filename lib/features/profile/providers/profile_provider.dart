@@ -202,6 +202,30 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> saveHomeLocation({
+    required String walkerId,
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      await SupabaseService.client.from('walkers').update({
+        'home_lat': lat,
+        'home_lng': lng,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', walkerId);
+      if (_walker != null) {
+        _walker!.homeLat = lat;
+        _walker!.homeLng = lng;
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _error = 'Error al guardar ubicación.';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> addPet({
     required String name,
     required String type,

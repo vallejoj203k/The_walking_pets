@@ -102,6 +102,20 @@ class LocationProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getWalkerHomes() async {
+    try {
+      final data = await SupabaseService.client
+          .from('walkers')
+          .select('id, name, home_lat, home_lng')
+          .not('home_lat', 'is', null)
+          .not('home_lng', 'is', null);
+      return List<Map<String, dynamic>>.from(data as List);
+    } catch (e) {
+      debugPrint('[LocationProvider] getWalkerHomes error: $e');
+      return [];
+    }
+  }
+
   Stream<List<Map<String, dynamic>>> watchWalkerLocation(String walkerId) {
     return SupabaseService.client
         .from('walker_locations')
