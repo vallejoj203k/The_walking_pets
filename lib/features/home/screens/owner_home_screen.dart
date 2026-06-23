@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../profile/screens/owner_profile_screen.dart';
-import '../../profile/widgets/pet_card.dart';
+import '../../search/screens/search_screen.dart';
+import '../../search/screens/search_map_screen.dart';
+import '../../booking/screens/my_bookings_screen.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
@@ -26,9 +28,9 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
     super.initState();
     _tabs = [
       const _OwnerHomeTab(),
-      const _OwnerPetsTab(),
+      const SearchScreen(),
+      const MyBookingsScreen(),
       const OwnerProfileScreen(isEditing: true),
-      const _OwnerMoreTab(),
     ];
   }
 
@@ -46,19 +48,19 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
             label: 'Inicio',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.pets_outlined),
-            activeIcon: Icon(Icons.pets),
-            label: 'Mascotas',
+            icon: Icon(Icons.search_outlined),
+            activeIcon: Icon(Icons.search),
+            label: 'Buscar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            activeIcon: Icon(Icons.calendar_today),
+            label: 'Reservas',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Perfil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.more_horiz),
-            activeIcon: Icon(Icons.more_horiz),
-            label: 'Más',
           ),
         ],
       ),
@@ -83,6 +85,28 @@ class _OwnerHomeTab extends StatelessWidget {
         title: const Text('The Walking Pets'),
         centerTitle: false,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.map_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const SearchMapScreen()),
+            ),
+            tooltip: 'Mapa de paseadores',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              profile.clear();
+              await auth.logout();
+              if (context.mounted) {
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/login', (r) => false);
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -103,49 +127,59 @@ class _OwnerHomeTab extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${profile.pets.length} mascota${profile.pets.length != 1 ? 's' : ''} registrada${profile.pets.length != 1 ? 's' : ''}',
-                    style: AppTextStyles.body
-                        .copyWith(color: Colors.white.withOpacity(0.85)),
+                    style: AppTextStyles.body.copyWith(
+                        color: Colors.white.withOpacity(0.85)),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('Accesos rápidos', style: AppTextStyles.heading3),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _QuickCard(
+                        icon: Icons.search,
+                        label: 'Buscar\nPaseadores',
+                        color: AppColors.accent,
+                        onTap: () {},
+                      ),
+                      const SizedBox(width: 12),
+                      _QuickCard(
+                        icon: Icons.map,
+                        label: 'Ver en\nMapa',
+                        color: AppColors.primary,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SearchMapScreen()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                   Text('Mis mascotas', style: AppTextStyles.heading3),
                   const SizedBox(height: 12),
                   if (profile.pets.isEmpty)
-                    EmptyState(
-                      message: 'Aún no tienes mascotas registradas.\nVe a tu perfil para agregar una.',
+                    const EmptyState(
+                      message:
+                          'Agrega mascotas desde tu perfil para hacer reservas.',
                       icon: Icons.pets,
                     )
                   else
-                    ...profile.pets.map((pet) => PetCard(
-                          pet: pet,
-                          onDelete: () => profile.deletePet(pet.id),
-                        )),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, color: AppColors.accent),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Próximamente podrás buscar paseadores en tu zona.',
-                            style: AppTextStyles.bodySecondary,
+                    ...profile.pets.map((pet) => ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.accentLight,
+                            child: Text(pet.typeEmoji),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
+                          title: Text(pet.name),
+                          subtitle: Text(
+                              '${_capitalize(pet.type)} · ${_capitalize(pet.size)}'),
+                        )),
                 ],
               ),
             ),
@@ -154,73 +188,43 @@ class _OwnerHomeTab extends StatelessWidget {
       ),
     );
   }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
-class _OwnerPetsTab extends StatelessWidget {
-  const _OwnerPetsTab();
+class _QuickCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickCard(
+      {required this.icon,
+      required this.label,
+      required this.color,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<ProfileProvider>();
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Mis mascotas'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-      ),
-      body: profile.pets.isEmpty
-          ? const EmptyState(
-              message: 'Aún no tienes mascotas.\nAgrégalas desde tu perfil.',
-              icon: Icons.pets,
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: profile.pets.length,
-              itemBuilder: (_, i) => PetCard(
-                pet: profile.pets[i],
-                onDelete: () => profile.deletePet(profile.pets[i].id),
-              ),
+    return Expanded(
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Icon(icon, color: color, size: 32),
+                const SizedBox(height: 8),
+                Text(label,
+                    style: AppTextStyles.label,
+                    textAlign: TextAlign.center),
+              ],
             ),
-    );
-  }
-}
-
-class _OwnerMoreTab extends StatelessWidget {
-  const _OwnerMoreTab();
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
-    final profile = context.read<ProfileProvider>();
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Más opciones'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-      ),
-      body: ListView(
-        children: [
-          const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text('Cerrar sesión',
-                style: TextStyle(color: AppColors.error)),
-            onTap: () async {
-              profile.clear();
-              await auth.logout();
-              if (context.mounted) {
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/login', (r) => false);
-              }
-            },
           ),
-        ],
+        ),
       ),
     );
   }

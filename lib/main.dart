@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/services/supabase_service.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
+import 'features/services/providers/services_provider.dart';
+import 'features/booking/providers/booking_provider.dart';
+import 'features/location/providers/location_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
@@ -15,6 +19,7 @@ import 'config/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es', null);
   await SupabaseService.initialize();
   runApp(const TheWalkingPetsApp());
 }
@@ -28,11 +33,15 @@ class TheWalkingPetsApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => ServicesProvider()),
+        ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
       ],
       child: MaterialApp(
         title: 'The Walking Pets',
         theme: AppTheme.light,
         debugShowCheckedModeBanner: false,
+        locale: const Locale('es'),
         initialRoute: '/',
         routes: {
           '/': (_) => const SplashScreen(),
