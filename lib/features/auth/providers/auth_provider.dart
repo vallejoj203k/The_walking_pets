@@ -69,7 +69,12 @@ class AuthProvider extends ChangeNotifier {
     } on AuthException catch (e) {
       _setError(_translateAuthError(e.message));
       return false;
+    } on PostgrestException catch (e) {
+      debugPrint('[AuthProvider] Postgrest register error: ${e.message} | ${e.code}');
+      _setError(_translatePostgrestError(e));
+      return false;
     } catch (e) {
+      debugPrint('[AuthProvider] register error: $e');
       _setError(e.toString().replaceAll('Exception: ', ''));
       return false;
     }
@@ -89,7 +94,12 @@ class AuthProvider extends ChangeNotifier {
     } on AuthException catch (e) {
       _setError(_translateAuthError(e.message));
       return false;
+    } on PostgrestException catch (e) {
+      debugPrint('[AuthProvider] Postgrest login error: ${e.message}');
+      _setError(_translatePostgrestError(e));
+      return false;
     } catch (e) {
+      debugPrint('[AuthProvider] login error: $e');
       _setError(e.toString().replaceAll('Exception: ', ''));
       return false;
     }
@@ -122,6 +132,18 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.error;
     _error = message;
     notifyListeners();
+  }
+
+  String _translatePostgrestError(PostgrestException e) {
+    final code = e.code ?? '';
+    final msg = e.message.toLowerCase();
+    if (code == '42501' || msg.contains('policy')) {
+      return 'Error de permisos en la base de datos. Verifica las políticas RLS en Supabase.';
+    }
+    if (code == '23505' || msg.contains('duplicate') || msg.contains('unique')) {
+      return 'Este email ya está registrado.';
+    }
+    return 'Error de base de datos: ${e.message}';
   }
 
   String _translateAuthError(String message) {

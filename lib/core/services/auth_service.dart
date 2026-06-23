@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
 import '../models/user_model.dart';
@@ -23,16 +24,27 @@ class AuthService {
       throw Exception('No se pudo crear la cuenta. Intenta de nuevo.');
     }
 
-    // Persist role in users table
-    await _client.from('users').insert({
-      'id': response.user!.id,
-      'email': email,
-      'role': role,
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-    });
+    final userId = response.user!.id;
 
-    return _fetchUserModel(response.user!.id);
+    // Small delay to ensure session is propagated
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    try {
+      await _client.from('users').upsert({
+        'id': userId,
+        'email': email,
+        'role': role,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('[AuthService] Error inserting user: $e');
+      // Sign out and rethrow so UI can show the error
+      await _client.auth.signOut();
+      rethrow;
+    }
+
+    return _fetchUserModel(userId);
   }
 
   Future<UserModel?> login({
