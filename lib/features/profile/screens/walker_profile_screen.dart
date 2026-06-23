@@ -29,21 +29,17 @@ class _WalkerProfileScreenState extends State<WalkerProfileScreen> {
   final _zoneCtrl = TextEditingController();
   List<String> _selectedServices = [];
   File? _photoFile;
-  bool _initialized = false;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized) {
-      _initialized = true;
-      _loadProfile();
-    }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
   }
 
   Future<void> _loadProfile() async {
+    if (!mounted) return;
     final userId = context.read<AuthProvider>().userModel!.id;
     await context.read<ProfileProvider>().loadWalkerProfile(userId);
-    _populateFields();
+    if (mounted) _populateFields();
   }
 
   void _populateFields() {
