@@ -249,6 +249,9 @@ class _WalkerResultCard extends StatelessWidget {
     final zone = walker['coverage_zone'] as String?;
     final serviceType = data['type'] as String? ?? '';
     final price = (data['price'] as num?)?.toDouble() ?? 0;
+    final priceSmall = (data['price_small'] as num?)?.toDouble();
+    final priceMedium = (data['price_medium'] as num?)?.toDouble();
+    final priceLarge = (data['price_large'] as num?)?.toDouble();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -287,7 +290,7 @@ class _WalkerResultCard extends StatelessWidget {
                   children: [
                     Text(name, style: AppTextStyles.heading3),
                     Text(
-                      '${_emoji(serviceType)} ${_capitalize(serviceType)} · \$${price.toStringAsFixed(0)} COP/h',
+                      '${_emoji(serviceType)} ${_capitalize(serviceType)} · ${_priceSummary(serviceType, price, priceSmall, priceMedium, priceLarge)}',
                       style: AppTextStyles.body
                           .copyWith(color: AppColors.primary),
                     ),
@@ -311,6 +314,19 @@ class _WalkerResultCard extends StatelessWidget {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  String _priceSummary(String type, double price, double? small,
+      double? medium, double? large) {
+    if (type == 'baño') {
+      final parts = <String>[];
+      if (small != null) parts.add('Peq: \$${small.toStringAsFixed(0)}');
+      if (medium != null) parts.add('Med: \$${medium.toStringAsFixed(0)}');
+      if (large != null) parts.add('Gran: \$${large.toStringAsFixed(0)}');
+      return parts.isEmpty ? 'Sin precio' : parts.join(' · ');
+    }
+    final unit = type == 'cuidado' ? '/día' : '/hora';
+    return '\$${price.toStringAsFixed(0)} COP$unit';
+  }
 
   String _emoji(String type) {
     switch (type) {

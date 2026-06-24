@@ -165,8 +165,7 @@ class _ServiceOption extends StatelessWidget {
                     children: [
                       Text(service.typeLabel,
                           style: AppTextStyles.heading3),
-                      Text(
-                          '\$${service.price.toStringAsFixed(0)} COP/hora',
+                      Text(service.priceSummary,
                           style: AppTextStyles.body
                               .copyWith(color: AppColors.primary)),
                     ],
