@@ -90,13 +90,15 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
   }
 
   Future<void> _openChatAfterAccept(BuildContext context, dynamic b) async {
-    // Walker user ID: current logged-in user (guaranteed correct)
     final walkerUserId = context.read<AuthProvider>().userModel?.id;
-    if (walkerUserId == null) return;
+    if (walkerUserId == null) {
+      _showError(context, 'No se pudo obtener el usuario del paseador.');
+      return;
+    }
 
-    // Owner user ID: prefer cached value, otherwise fetch from owners table
     String? ownerUserId = b.ownerUserId as String?;
     String ownerName = (b.ownerName as String?) ?? 'Dueño';
+
     if (ownerUserId == null) {
       try {
         final ownerData = await SupabaseService.client
@@ -107,15 +109,29 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
         ownerUserId = ownerData?['user_id'] as String?;
         ownerName = ownerData?['name'] as String? ?? ownerName;
       } catch (e) {
-        debugPrint('[WalkerRequests] fetch ownerUserId: $e');
+        _showError(context, 'Error al obtener datos del dueño: $e');
+        return;
       }
     }
-    if (ownerUserId == null || !mounted) return;
+
+    if (ownerUserId == null) {
+      _showError(context, 'No se encontró el usuario del dueño.');
+      return;
+    }
+
+    if (!mounted) return;
 
     final conv = await context
         .read<ChatProvider>()
         .getOrCreateConversation(walkerUserId, ownerUserId);
-    if (!mounted || conv == null) return;
+
+    if (!mounted) return;
+
+    if (conv == null) {
+      _showError(context,
+          'No se pudo crear la conversación. ¿Existe la tabla conversations?');
+      return;
+    }
 
     await Navigator.push(
       context,
@@ -127,6 +143,13 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
           otherUserName: ownerName,
         ),
       ),
+    );
+  }
+
+  void _showError(BuildContext context, String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
     );
   }
 
