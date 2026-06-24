@@ -113,6 +113,11 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
                     .read<BookingProvider>()
                     .updateBookingStatus(b.id, 'cancelled')
                 : null,
+            onStart: b.status == 'accepted'
+                ? () => context
+                    .read<BookingProvider>()
+                    .updateBookingStatus(b.id, 'in_progress')
+                : null,
             onComplete: b.status == 'in_progress'
                 ? () => context
                     .read<BookingProvider>()

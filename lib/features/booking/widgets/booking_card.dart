@@ -10,6 +10,7 @@ class BookingCard extends StatelessWidget {
   final bool isWalkerView;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
+  final VoidCallback? onStart;
   final VoidCallback? onCancel;
   final VoidCallback? onComplete;
   final VoidCallback? onTap;
@@ -20,6 +21,7 @@ class BookingCard extends StatelessWidget {
     this.isWalkerView = false,
     this.onAccept,
     this.onReject,
+    this.onStart,
     this.onCancel,
     this.onComplete,
     this.onTap,
@@ -106,6 +108,7 @@ class BookingCard extends StatelessWidget {
     return (isWalkerView &&
             booking.status == 'pending' &&
             (onAccept != null || onReject != null)) ||
+        (isWalkerView && booking.status == 'accepted' && onStart != null) ||
         (booking.canCancel && onCancel != null) ||
         (booking.canComplete && onComplete != null);
   }
@@ -137,6 +140,16 @@ class BookingCard extends StatelessWidget {
               child: const Text('Rechazar'),
             ),
         ],
+        if (isWalkerView && booking.status == 'accepted' && onStart != null)
+          ElevatedButton(
+            onPressed: onStart,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+            child: const Text('Iniciar servicio'),
+          ),
         if (booking.canCancel && onCancel != null && !isWalkerView)
           OutlinedButton(
             onPressed: onCancel,
