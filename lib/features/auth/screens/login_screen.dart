@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../../admin/providers/admin_provider.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../config/theme/app_colors.dart';
@@ -39,14 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success && auth.userModel != null) {
-      final userId = auth.userModel!.id;
-      final isAdmin =
-          await context.read<AdminProvider>().checkAdminStatus(userId);
-      if (!mounted) return;
-      if (isAdmin) {
-        Navigator.of(context).pushReplacementNamed('/admin-home');
-        return;
-      }
       final role = auth.userModel!.role;
       if (role == 'walker') {
         Navigator.of(context).pushReplacementNamed('/walker-home');

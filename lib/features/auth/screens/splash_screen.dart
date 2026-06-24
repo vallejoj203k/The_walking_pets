@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../../admin/providers/admin_provider.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../../config/constants/app_constants.dart';
@@ -30,24 +29,12 @@ class _SplashScreenState extends State<SplashScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    await _navigate(authProvider);
+    _navigate(authProvider);
   }
 
-  Future<void> _navigate(AuthProvider authProvider) async {
+  void _navigate(AuthProvider authProvider) {
     if (!mounted) return;
     if (authProvider.isAuthenticated && authProvider.userModel != null) {
-      final userId = authProvider.userModel!.id;
-
-      // Check admin first
-      final isAdmin =
-          await context.read<AdminProvider>().checkAdminStatus(userId);
-      if (!mounted) return;
-
-      if (isAdmin) {
-        Navigator.of(context).pushReplacementNamed('/admin-home');
-        return;
-      }
-
       final role = authProvider.userModel!.role;
       if (role == AppConstants.roleWalker) {
         Navigator.of(context).pushReplacementNamed('/walker-home');
