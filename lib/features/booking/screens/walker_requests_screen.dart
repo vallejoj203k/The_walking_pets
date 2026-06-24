@@ -5,6 +5,7 @@ import '../widgets/booking_card.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/chat/providers/chat_provider.dart';
 import '../../../features/chat/screens/chat_detail_screen.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
@@ -88,6 +89,47 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
     );
   }
 
+  Future<void> _openChatAfterAccept(BuildContext context, dynamic b) async {
+    // Walker user ID: current logged-in user (guaranteed correct)
+    final walkerUserId = context.read<AuthProvider>().userModel?.id;
+    if (walkerUserId == null) return;
+
+    // Owner user ID: prefer cached value, otherwise fetch from owners table
+    String? ownerUserId = b.ownerUserId as String?;
+    String ownerName = (b.ownerName as String?) ?? 'Dueño';
+    if (ownerUserId == null) {
+      try {
+        final ownerData = await SupabaseService.client
+            .from('owners')
+            .select('user_id, name')
+            .eq('id', b.ownerId as String)
+            .maybeSingle();
+        ownerUserId = ownerData?['user_id'] as String?;
+        ownerName = ownerData?['name'] as String? ?? ownerName;
+      } catch (e) {
+        debugPrint('[WalkerRequests] fetch ownerUserId: $e');
+      }
+    }
+    if (ownerUserId == null || !mounted) return;
+
+    final conv = await context
+        .read<ChatProvider>()
+        .getOrCreateConversation(walkerUserId, ownerUserId);
+    if (!mounted || conv == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatDetailScreen(
+          conversationId: conv.id,
+          currentUserId: walkerUserId,
+          otherUserId: ownerUserId!,
+          otherUserName: ownerName,
+        ),
+      ),
+    );
+  }
+
   Widget _buildList(BuildContext context, List bookings,
       String emptyMessage, bool isPending) {
     if (bookings.isEmpty) {
@@ -111,25 +153,7 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
                         .read<BookingProvider>()
                         .updateBookingStatus(b.id, 'accepted');
                     if (!mounted) return;
-                    // Create conversation and navigate to chat
-                    if (b.walkerUserId != null && b.ownerUserId != null) {
-                      final conv = await context
-                          .read<ChatProvider>()
-                          .getOrCreateConversation(
-                              b.walkerUserId!, b.ownerUserId!);
-                      if (!mounted || conv == null) return;
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatDetailScreen(
-                            conversationId: conv.id,
-                            currentUserId: b.walkerUserId!,
-                            otherUserId: b.ownerUserId!,
-                            otherUserName: b.ownerName ?? 'Dueño',
-                          ),
-                        ),
-                      );
-                    }
+                    await _openChatAfterAccept(context, b);
                   }
                 : null,
             onReject: isPending
