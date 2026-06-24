@@ -8,6 +8,8 @@ import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../../config/constants/app_constants.dart';
+import '../../../features/reviews/providers/reviews_provider.dart';
+import '../../../features/reviews/widgets/rating_stars.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -252,6 +254,7 @@ class _WalkerResultCard extends StatelessWidget {
     final priceSmall = (data['price_small'] as num?)?.toDouble();
     final priceMedium = (data['price_medium'] as num?)?.toDouble();
     final priceLarge = (data['price_large'] as num?)?.toDouble();
+    final walkerId = walker['id'] as String? ?? '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -294,6 +297,28 @@ class _WalkerResultCard extends StatelessWidget {
                       style: AppTextStyles.body
                           .copyWith(color: AppColors.primary),
                     ),
+                    if (walkerId.isNotEmpty)
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: context
+                            .read<ReviewsProvider>()
+                            .getWalkerRatingSummary(walkerId),
+                        builder: (ctx, snap) {
+                          if (!snap.hasData) return const SizedBox.shrink();
+                          final avg = (snap.data!['average'] as num).toDouble();
+                          final count = snap.data!['count'] as int;
+                          if (count == 0) return const SizedBox.shrink();
+                          return Row(
+                            children: [
+                              RatingStars(rating: avg, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${avg.toStringAsFixed(1)} ($count)',
+                                style: AppTextStyles.caption,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                     if (experience != null)
                       Text('$experience años de experiencia',
                           style: AppTextStyles.bodySecondary),

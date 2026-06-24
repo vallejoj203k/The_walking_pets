@@ -81,21 +81,23 @@ class BookingProvider extends ChangeNotifier {
   Future<void> _enrichBookings(List<BookingModel> bookings) async {
     for (final b in bookings) {
       try {
-        // Walker name
+        // Walker name + user_id
         final walkerData = await SupabaseService.client
             .from('walkers')
-            .select('name')
+            .select('name, user_id')
             .eq('id', b.walkerId)
             .maybeSingle();
         b.walkerName = walkerData?['name'] as String?;
+        b.walkerUserId = walkerData?['user_id'] as String?;
 
-        // Owner name
+        // Owner name + user_id
         final ownerData = await SupabaseService.client
             .from('owners')
-            .select('name')
+            .select('name, user_id')
             .eq('id', b.ownerId)
             .maybeSingle();
         b.ownerName = ownerData?['name'] as String?;
+        b.ownerUserId = ownerData?['user_id'] as String?;
 
         // Pet name
         final petData = await SupabaseService.client

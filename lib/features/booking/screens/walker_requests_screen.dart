@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/booking_provider.dart';
 import '../widgets/booking_card.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/chat/providers/chat_provider.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
@@ -104,9 +105,18 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
             booking: b,
             isWalkerView: true,
             onAccept: isPending
-                ? () => context
-                    .read<BookingProvider>()
-                    .updateBookingStatus(b.id, 'accepted')
+                ? () async {
+                    await context
+                        .read<BookingProvider>()
+                        .updateBookingStatus(b.id, 'accepted');
+                    // Auto-create chat conversation
+                    if (b.walkerUserId != null && b.ownerUserId != null) {
+                      await context
+                          .read<ChatProvider>()
+                          .getOrCreateConversation(
+                              b.walkerUserId!, b.ownerUserId!);
+                    }
+                  }
                 : null,
             onReject: isPending
                 ? () => context

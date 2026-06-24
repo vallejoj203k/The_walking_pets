@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/booking_provider.dart';
 import '../widgets/booking_card.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/reviews/screens/review_screen.dart';
+import '../../../features/payments/screens/payment_screen.dart';
+import '../../../core/models/booking_model.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
@@ -40,8 +43,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   @override
   Widget build(BuildContext context) {
     final booking = context.watch<BookingProvider>();
-    final active =
-        booking.ownerBookings.where((b) => b.isActive).toList();
+    final active = booking.ownerBookings.where((b) => b.isActive).toList();
     final completed =
         booking.ownerBookings.where((b) => b.status == 'completed').toList();
     final cancelled =
@@ -86,6 +88,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                       _BookingList(
                         bookings: completed,
                         emptyMessage: 'Sin reservas completadas aún.',
+                        showReviewPayButtons: true,
                       ),
                       _BookingList(
                         bookings: cancelled,
@@ -101,11 +104,15 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
 }
 
 class _BookingList extends StatelessWidget {
-  final List bookings;
+  final List<BookingModel> bookings;
   final String emptyMessage;
+  final bool showReviewPayButtons;
 
-  const _BookingList(
-      {required this.bookings, required this.emptyMessage});
+  const _BookingList({
+    required this.bookings,
+    required this.emptyMessage,
+    this.showReviewPayButtons = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -123,18 +130,70 @@ class _BookingList extends StatelessWidget {
         itemCount: bookings.length,
         itemBuilder: (_, i) {
           final b = bookings[i];
-          return BookingCard(
-            booking: b,
-            onCancel: b.canCancel
-                ? () => context
-                    .read<BookingProvider>()
-                    .updateBookingStatus(b.id, 'cancelled')
-                : null,
-            onComplete: b.canComplete
-                ? () => context
-                    .read<BookingProvider>()
-                    .updateBookingStatus(b.id, 'completed')
-                : null,
+          return Column(
+            children: [
+              BookingCard(
+                booking: b,
+                onCancel: b.canCancel
+                    ? () => context
+                        .read<BookingProvider>()
+                        .updateBookingStatus(b.id, 'cancelled')
+                    : null,
+                onComplete: b.canComplete
+                    ? () => context
+                        .read<BookingProvider>()
+                        .updateBookingStatus(b.id, 'completed')
+                    : null,
+              ),
+              if (showReviewPayButtons && b.status == 'completed')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.star_outline, size: 16),
+                          label: const Text('Calificar'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.accent,
+                            side: const BorderSide(color: AppColors.accent),
+                          ),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ReviewScreen(
+                                bookingId: b.id,
+                                walkerId: b.walkerId,
+                                walkerUserId: b.walkerUserId ?? '',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.payment, size: 16),
+                          label: const Text('Pagar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PaymentScreen(
+                                booking: b,
+                                walkerUserId: b.walkerUserId ?? '',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           );
         },
       ),

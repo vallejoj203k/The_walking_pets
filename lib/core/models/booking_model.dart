@@ -16,6 +16,8 @@ class BookingModel {
   String? serviceType;
   double? servicePrice;
   String? petName;
+  String? walkerUserId; // auth user_id of the walker
+  String? ownerUserId; // auth user_id of the owner
 
   BookingModel({
     required this.id,
@@ -33,6 +35,8 @@ class BookingModel {
     this.serviceType,
     this.servicePrice,
     this.petName,
+    this.walkerUserId,
+    this.ownerUserId,
   });
 
   factory BookingModel.fromMap(Map<String, dynamic> map) {

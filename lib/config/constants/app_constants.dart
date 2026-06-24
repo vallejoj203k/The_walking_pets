@@ -1,6 +1,9 @@
 class AppConstants {
   static const String appName = 'The Walking Pets';
 
+  // Payments
+  static const double platformCommission = 0.10; // 10%
+
   // Roles
   static const String roleWalker = 'walker';
   static const String roleOwner = 'owner';

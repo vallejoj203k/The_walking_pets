@@ -9,6 +9,9 @@ import '../../../core/services/supabase_service.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../widgets/service_card.dart';
+import '../../../features/reviews/providers/reviews_provider.dart';
+import '../../../features/reviews/widgets/rating_stars.dart';
+import '../../../features/reviews/screens/reviews_list_screen.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 
@@ -30,6 +33,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   List<ServiceModel> _allServices = [];
   WalkerModel? _walker;
   bool _loading = true;
+  double _avgRating = 0;
+  int _reviewCount = 0;
 
   @override
   void initState() {
@@ -54,6 +59,13 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
           .read<ServicesProvider>()
           .loadWalkerServices(walkerId);
       _allServices = context.read<ServicesProvider>().walkerServices;
+
+      // Load rating
+      final ratingSummary = await context
+          .read<ReviewsProvider>()
+          .getWalkerRatingSummary(walkerId);
+      _avgRating = (ratingSummary['average'] as num).toDouble();
+      _reviewCount = ratingSummary['count'] as int;
     } catch (e) {
       // fallback
     }
@@ -108,6 +120,35 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                               style: AppTextStyles.body.copyWith(
                                   color:
                                       Colors.white.withOpacity(0.85))),
+                        if (_reviewCount > 0) ...[
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ReviewsListScreen(
+                                  walkerId: widget.walkerData['id'] as String,
+                                  walkerName: name,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                RatingStars(
+                                    rating: _avgRating,
+                                    size: 18,
+                                    color: AppColors.accent),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${_avgRating.toStringAsFixed(1)} ($_reviewCount reseña${_reviewCount != 1 ? 's' : ''})',
+                                  style: AppTextStyles.body.copyWith(
+                                      color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

@@ -6,6 +6,7 @@ import '../../profile/screens/owner_profile_screen.dart';
 import '../../search/screens/search_screen.dart';
 import '../../search/screens/search_map_screen.dart';
 import '../../booking/screens/my_bookings_screen.dart';
+import '../../chat/screens/chat_list_screen.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
@@ -28,6 +29,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
     super.initState();
     _tabs = [
       const _OwnerHomeTab(),
+      const ChatListScreen(),
       const SearchScreen(),
       const MyBookingsScreen(),
       const OwnerProfileScreen(isEditing: true),
@@ -46,6 +48,11 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.search_outlined),

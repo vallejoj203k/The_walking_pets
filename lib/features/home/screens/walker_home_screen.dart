@@ -6,6 +6,8 @@ import '../../profile/screens/walker_profile_screen.dart';
 import '../../services/screens/my_services_screen.dart';
 import '../../booking/screens/walker_requests_screen.dart';
 import '../../location/screens/share_location_screen.dart';
+import '../../chat/screens/chat_list_screen.dart';
+import '../../payments/screens/wallet_screen.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
@@ -27,6 +29,7 @@ class _WalkerHomeScreenState extends State<WalkerHomeScreen> {
     super.initState();
     _tabs = [
       const _WalkerHomeTab(),
+      const ChatListScreen(),
       const MyServicesScreen(),
       const WalkerRequestsScreen(),
       const ShareLocationScreen(),
@@ -46,6 +49,11 @@ class _WalkerHomeScreenState extends State<WalkerHomeScreen> {
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.home_repair_service_outlined),
@@ -103,6 +111,15 @@ class _WalkerHomeTab extends StatelessWidget {
             },
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const WalletScreen()),
+        ),
+        icon: const Icon(Icons.account_balance_wallet),
+        label: const Text('Mi Billetera'),
+        backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
         child: Column(

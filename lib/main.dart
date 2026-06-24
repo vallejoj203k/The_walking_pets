@@ -8,6 +8,9 @@ import 'features/profile/providers/profile_provider.dart';
 import 'features/services/providers/services_provider.dart';
 import 'features/booking/providers/booking_provider.dart';
 import 'features/location/providers/location_provider.dart';
+import 'features/chat/providers/chat_provider.dart';
+import 'features/reviews/providers/reviews_provider.dart';
+import 'features/payments/providers/payment_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
@@ -37,6 +40,9 @@ class TheWalkingPetsApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ServicesProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ReviewsProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: MaterialApp(
         title: 'The Walking Pets',
