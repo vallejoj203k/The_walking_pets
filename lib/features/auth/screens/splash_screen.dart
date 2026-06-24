@@ -35,6 +35,10 @@ class _SplashScreenState extends State<SplashScreen> {
   void _navigate(AuthProvider authProvider) {
     if (!mounted) return;
     if (authProvider.isAuthenticated && authProvider.userModel != null) {
+      if (authProvider.userModel!.email == AppConstants.adminEmail) {
+        Navigator.of(context).pushReplacementNamed('/admin-home');
+        return;
+      }
       final role = authProvider.userModel!.role;
       if (role == AppConstants.roleWalker) {
         Navigator.of(context).pushReplacementNamed('/walker-home');

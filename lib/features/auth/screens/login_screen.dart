@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 import '../../../widgets/custom_elevated_button.dart';
+import '../../../config/constants/app_constants.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../../utils/validators.dart';
@@ -38,6 +39,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success && auth.userModel != null) {
+      if (auth.userModel!.email == AppConstants.adminEmail) {
+        Navigator.of(context).pushReplacementNamed('/admin-home');
+        return;
+      }
       final role = auth.userModel!.role;
       if (role == 'walker') {
         Navigator.of(context).pushReplacementNamed('/walker-home');

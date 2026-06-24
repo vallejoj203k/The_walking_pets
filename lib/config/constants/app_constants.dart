@@ -4,6 +4,9 @@ class AppConstants {
   // Payments
   static const double platformCommission = 0.10; // 10%
 
+  // Admin
+  static const String adminEmail = 'vallejoj203k@gmail.com';
+
   // Roles
   static const String roleWalker = 'walker';
   static const String roleOwner = 'owner';
