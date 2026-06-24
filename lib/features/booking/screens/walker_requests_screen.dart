@@ -4,6 +4,7 @@ import '../providers/booking_provider.dart';
 import '../widgets/booking_card.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/chat/providers/chat_provider.dart';
+import '../../../features/chat/screens/chat_detail_screen.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../config/theme/app_colors.dart';
@@ -109,12 +110,25 @@ class _WalkerRequestsScreenState extends State<WalkerRequestsScreen>
                     await context
                         .read<BookingProvider>()
                         .updateBookingStatus(b.id, 'accepted');
-                    // Auto-create chat conversation
+                    if (!mounted) return;
+                    // Create conversation and navigate to chat
                     if (b.walkerUserId != null && b.ownerUserId != null) {
-                      await context
+                      final conv = await context
                           .read<ChatProvider>()
                           .getOrCreateConversation(
                               b.walkerUserId!, b.ownerUserId!);
+                      if (!mounted || conv == null) return;
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatDetailScreen(
+                            conversationId: conv.id,
+                            currentUserId: b.walkerUserId!,
+                            otherUserId: b.ownerUserId!,
+                            otherUserName: b.ownerName ?? 'Dueño',
+                          ),
+                        ),
+                      );
                     }
                   }
                 : null,
