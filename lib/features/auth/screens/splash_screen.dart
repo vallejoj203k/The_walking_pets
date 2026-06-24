@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../../admin/providers/admin_provider.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../../config/constants/app_constants.dart';
@@ -25,24 +26,33 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final authProvider = context.read<AuthProvider>();
 
-    // Wait until auth is no longer in initial state
     if (authProvider.status == AuthStatus.initial) {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    _navigate(authProvider);
+    await _navigate(authProvider);
   }
 
-  void _navigate(AuthProvider authProvider) {
+  Future<void> _navigate(AuthProvider authProvider) async {
     if (!mounted) return;
     if (authProvider.isAuthenticated && authProvider.userModel != null) {
+      final userId = authProvider.userModel!.id;
+
+      // Check admin first
+      final isAdmin =
+          await context.read<AdminProvider>().checkAdminStatus(userId);
+      if (!mounted) return;
+
+      if (isAdmin) {
+        Navigator.of(context).pushReplacementNamed('/admin-home');
+        return;
+      }
+
       final role = authProvider.userModel!.role;
       if (role == AppConstants.roleWalker) {
-        Navigator.of(context)
-            .pushReplacementNamed('/walker-home');
+        Navigator.of(context).pushReplacementNamed('/walker-home');
       } else {
-        Navigator.of(context)
-            .pushReplacementNamed('/owner-home');
+        Navigator.of(context).pushReplacementNamed('/owner-home');
       }
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
@@ -64,7 +74,8 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
               ),
-              child: const Icon(Icons.pets, size: 60, color: AppColors.primary),
+              child:
+                  const Icon(Icons.pets, size: 60, color: AppColors.primary),
             ),
             const SizedBox(height: 24),
             Text(
@@ -74,9 +85,8 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 8),
             Text(
               'El paseo de tus mascotas, sin estrés',
-              style: AppTextStyles.body.copyWith(
-                color: Colors.white.withOpacity(0.85),
-              ),
+              style: AppTextStyles.body
+                  .copyWith(color: Colors.white.withOpacity(0.85)),
             ),
             const SizedBox(height: 48),
             const CircularProgressIndicator(color: Colors.white),

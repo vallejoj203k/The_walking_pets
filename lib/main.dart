@@ -11,6 +11,7 @@ import 'features/location/providers/location_provider.dart';
 import 'features/chat/providers/chat_provider.dart';
 import 'features/reviews/providers/reviews_provider.dart';
 import 'features/payments/providers/payment_provider.dart';
+import 'features/admin/providers/admin_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
@@ -19,6 +20,7 @@ import 'features/profile/screens/walker_profile_screen.dart';
 import 'features/profile/screens/owner_profile_screen.dart';
 import 'features/home/screens/walker_home_screen.dart';
 import 'features/home/screens/owner_home_screen.dart';
+import 'features/admin/screens/admin_home_screen.dart';
 import 'config/theme/app_theme.dart';
 
 void main() async {
@@ -43,6 +45,7 @@ class TheWalkingPetsApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       child: MaterialApp(
         title: 'The Walking Pets',
@@ -68,6 +71,7 @@ class TheWalkingPetsApp extends StatelessWidget {
           '/owner-profile': (_) => const OwnerProfileScreen(),
           '/walker-home': (_) => const WalkerHomeScreen(),
           '/owner-home': (_) => const OwnerHomeScreen(),
+          '/admin-home': (_) => const AdminHomeScreen(),
         },
       ),
     );
