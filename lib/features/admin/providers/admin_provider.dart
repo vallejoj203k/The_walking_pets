@@ -14,14 +14,13 @@ class AdminProvider extends ChangeNotifier {
   Future<bool> checkAdminStatus(String userId) async {
     try {
       final data = await SupabaseService.client
-          .from('admin_users')
-          .select('role, is_active')
+          .from('users')
+          .select('is_admin')
           .eq('id', userId)
-          .eq('is_active', true)
           .maybeSingle();
 
-      _isAdmin = data != null;
-      _adminRole = data?['role'] as String?;
+      _isAdmin = (data?['is_admin'] as bool?) == true;
+      _adminRole = _isAdmin ? 'super_admin' : null;
     } catch (e) {
       _isAdmin = false;
       _adminRole = null;
