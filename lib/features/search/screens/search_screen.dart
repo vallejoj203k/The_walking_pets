@@ -38,16 +38,30 @@ class _SearchScreenState extends State<SearchScreen> {
           maxPrice: _maxPrice,
         );
 
-    // Filtrar por nombre si hay texto
+    // Agrupar servicios por paseador (una tarjeta por paseador)
+    final Map<String, Map<String, dynamic>> grouped = {};
+    for (final row in results) {
+      final walker = row['walkers'] as Map<String, dynamic>? ?? {};
+      final walkerId = walker['id'] as String? ?? '';
+      if (walkerId.isEmpty) continue;
+      if (!grouped.containsKey(walkerId)) {
+        grouped[walkerId] = {
+          'walker': walker,
+          'services': <Map<String, dynamic>>[],
+        };
+      }
+      (grouped[walkerId]!['services'] as List).add(row);
+    }
+
     final query = _searchCtrl.text.trim().toLowerCase();
+    final walkerList = grouped.values.where((w) {
+      if (query.isEmpty) return true;
+      final name = ((w['walker'] as Map)['name'] as String? ?? '').toLowerCase();
+      return name.contains(query);
+    }).toList();
+
     setState(() {
-      _results = query.isEmpty
-          ? results
-          : results.where((r) {
-              final walker = r['walkers'] as Map<String, dynamic>?;
-              final name = (walker?['name'] as String? ?? '').toLowerCase();
-              return name.contains(query);
-            }).toList();
+      _results = walkerList;
       _isLoading = false;
     });
   }
@@ -223,8 +237,11 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: _results.length,
-                          itemBuilder: (_, i) =>
-                              _WalkerResultCard(data: _results[i]),
+                          itemBuilder: (_, i) => _WalkerResultCard(
+                            walkerData: _results[i]['walker'] as Map<String, dynamic>,
+                            services: List<Map<String, dynamic>>.from(
+                                _results[i]['services'] as List),
+                          ),
                         ),
                       ),
           ),
@@ -238,98 +255,120 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 class _WalkerResultCard extends StatelessWidget {
-  final Map<String, dynamic> data;
+  final Map<String, dynamic> walkerData;
+  final List<Map<String, dynamic>> services;
 
-  const _WalkerResultCard({required this.data});
+  const _WalkerResultCard({
+    required this.walkerData,
+    required this.services,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final walker = data['walkers'] as Map<String, dynamic>? ?? {};
-    final name = walker['name'] as String? ?? 'Paseador';
-    final photo = walker['photo_url'] as String?;
-    final experience = walker['experience_years'] as int?;
-    final zone = walker['coverage_zone'] as String?;
-    final serviceType = data['type'] as String? ?? '';
-    final price = (data['price'] as num?)?.toDouble() ?? 0;
-    final priceSmall = (data['price_small'] as num?)?.toDouble();
-    final priceMedium = (data['price_medium'] as num?)?.toDouble();
-    final priceLarge = (data['price_large'] as num?)?.toDouble();
-    final walkerId = walker['id'] as String? ?? '';
+    final name = walkerData['name'] as String? ?? 'Paseador';
+    final photo = walkerData['photo_url'] as String?;
+    final experience = walkerData['experience_years'] as int?;
+    final zone = walkerData['coverage_zone'] as String?;
+    final walkerId = walkerData['id'] as String? ?? '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ServiceDetailScreen(
-                serviceData: data,
-                walkerData: walker,
-              ),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ServiceDetailScreen(
+              serviceData: services.isNotEmpty ? services.first : {},
+              walkerData: walkerData,
             ),
-          );
-        },
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppColors.primaryLight,
-                backgroundImage: photo != null && photo.isNotEmpty
-                    ? CachedNetworkImageProvider(photo)
-                    : null,
-                child: photo == null || photo.isEmpty
-                    ? const Icon(Icons.person,
-                        size: 30, color: AppColors.primary)
-                    : null,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: AppTextStyles.heading3),
-                    Text(
-                      '${_emoji(serviceType)} ${_capitalize(serviceType)} · ${_priceSummary(serviceType, price, priceSmall, priceMedium, priceLarge)}',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.primary),
+              // Header: foto + info básica
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.primaryLight,
+                    backgroundImage: photo != null && photo.isNotEmpty
+                        ? CachedNetworkImageProvider(photo)
+                        : null,
+                    child: photo == null || photo.isEmpty
+                        ? const Icon(Icons.person, size: 28, color: AppColors.primary)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: AppTextStyles.heading3),
+                        if (walkerId.isNotEmpty)
+                          FutureBuilder<Map<String, dynamic>>(
+                            future: context
+                                .read<ReviewsProvider>()
+                                .getWalkerRatingSummary(walkerId),
+                            builder: (ctx, snap) {
+                              if (!snap.hasData) return const SizedBox.shrink();
+                              final avg = (snap.data!['average'] as num).toDouble();
+                              final count = snap.data!['count'] as int;
+                              if (count == 0) return const SizedBox.shrink();
+                              return Row(
+                                children: [
+                                  RatingStars(rating: avg, size: 13),
+                                  const SizedBox(width: 4),
+                                  Text('${avg.toStringAsFixed(1)} ($count)',
+                                      style: AppTextStyles.caption),
+                                ],
+                              );
+                            },
+                          ),
+                        if (experience != null)
+                          Text('$experience años de exp.',
+                              style: AppTextStyles.bodySecondary),
+                        if (zone != null)
+                          Text('📍 $zone', style: AppTextStyles.bodySecondary),
+                      ],
                     ),
-                    if (walkerId.isNotEmpty)
-                      FutureBuilder<Map<String, dynamic>>(
-                        future: context
-                            .read<ReviewsProvider>()
-                            .getWalkerRatingSummary(walkerId),
-                        builder: (ctx, snap) {
-                          if (!snap.hasData) return const SizedBox.shrink();
-                          final avg = (snap.data!['average'] as num).toDouble();
-                          final count = snap.data!['count'] as int;
-                          if (count == 0) return const SizedBox.shrink();
-                          return Row(
-                            children: [
-                              RatingStars(rating: avg, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${avg.toStringAsFixed(1)} ($count)',
-                                style: AppTextStyles.caption,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    if (experience != null)
-                      Text('$experience años de experiencia',
-                          style: AppTextStyles.bodySecondary),
-                    if (zone != null)
-                      Text('📍 $zone',
-                          style: AppTextStyles.bodySecondary),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                ],
               ),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary),
+              // Servicios
+              if (services.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: services.map((s) {
+                    final type = s['type'] as String? ?? '';
+                    final price = (s['price'] as num?)?.toDouble() ?? 0;
+                    final small = (s['price_small'] as num?)?.toDouble();
+                    final medium = (s['price_medium'] as num?)?.toDouble();
+                    final large = (s['price_large'] as num?)?.toDouble();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_emoji(type)} ${_capitalize(type)} · ${_priceSummary(type, price, small, medium, large)}',
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.primary),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),
@@ -350,7 +389,7 @@ class _WalkerResultCard extends StatelessWidget {
       return parts.isEmpty ? 'Sin precio' : parts.join(' · ');
     }
     final unit = type == 'cuidado' ? '/día' : '/hora';
-    return '\$${price.toStringAsFixed(0)} COP$unit';
+    return '\$${price.toStringAsFixed(0)}$unit';
   }
 
   String _emoji(String type) {
