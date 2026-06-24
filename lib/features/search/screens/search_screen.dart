@@ -254,7 +254,7 @@ class _SearchScreenState extends State<SearchScreen> {
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
-class _WalkerResultCard extends StatelessWidget {
+class _WalkerResultCard extends StatefulWidget {
   final Map<String, dynamic> walkerData;
   final List<Map<String, dynamic>> services;
 
@@ -264,50 +264,37 @@ class _WalkerResultCard extends StatelessWidget {
   });
 
   @override
+  State<_WalkerResultCard> createState() => _WalkerResultCardState();
+}
+
+class _WalkerResultCardState extends State<_WalkerResultCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final name = walkerData['name'] as String? ?? 'Paseador';
-    final photo = walkerData['photo_url'] as String?;
-    final experience = walkerData['experience_years'] as int?;
-    final zone = walkerData['coverage_zone'] as String?;
-    final walkerId = walkerData['id'] as String? ?? '';
+    final name = widget.walkerData['name'] as String? ?? 'Paseador';
+    final zone = widget.walkerData['coverage_zone'] as String?;
+    final walkerId = widget.walkerData['id'] as String? ?? '';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ServiceDetailScreen(
-              serviceData: services.isNotEmpty ? services.first : {},
-              walkerData: walkerData,
-            ),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: foto + info básica
-              Row(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        children: [
+          // Fila principal — toca para desplegar
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppColors.primaryLight,
-                    backgroundImage: photo != null && photo.isNotEmpty
-                        ? CachedNetworkImageProvider(photo)
-                        : null,
-                    child: photo == null || photo.isEmpty
-                        ? const Icon(Icons.person, size: 28, color: AppColors.primary)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(name, style: AppTextStyles.heading3),
+                        if (zone != null)
+                          Text('📍 $zone', style: AppTextStyles.bodySecondary),
                         if (walkerId.isNotEmpty)
                           FutureBuilder<Map<String, dynamic>>(
                             future: context
@@ -318,60 +305,78 @@ class _WalkerResultCard extends StatelessWidget {
                               final avg = (snap.data!['average'] as num).toDouble();
                               final count = snap.data!['count'] as int;
                               if (count == 0) return const SizedBox.shrink();
-                              return Row(
-                                children: [
-                                  RatingStars(rating: avg, size: 13),
-                                  const SizedBox(width: 4),
-                                  Text('${avg.toStringAsFixed(1)} ($count)',
-                                      style: AppTextStyles.caption),
-                                ],
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Row(
+                                  children: [
+                                    RatingStars(rating: avg, size: 13),
+                                    const SizedBox(width: 4),
+                                    Text('${avg.toStringAsFixed(1)} ($count)',
+                                        style: AppTextStyles.caption),
+                                  ],
+                                ),
                               );
                             },
                           ),
-                        if (experience != null)
-                          Text('$experience años de exp.',
-                              style: AppTextStyles.bodySecondary),
-                        if (zone != null)
-                          Text('📍 $zone', style: AppTextStyles.bodySecondary),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.keyboard_arrow_down,
+                        color: AppColors.textSecondary),
+                  ),
                 ],
               ),
-              // Servicios
-              if (services.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: services.map((s) {
-                    final type = s['type'] as String? ?? '';
-                    final price = (s['price'] as num?)?.toDouble() ?? 0;
-                    final small = (s['price_small'] as num?)?.toDouble();
-                    final medium = (s['price_medium'] as num?)?.toDouble();
-                    final large = (s['price_large'] as num?)?.toDouble();
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${_emoji(type)} ${_capitalize(type)} · ${_priceSummary(type, price, small, medium, large)}',
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.primary),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
+          // Servicios desplegables
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              children: [
+                const Divider(height: 1),
+                ...widget.services.map((s) {
+                  final type = s['type'] as String? ?? '';
+                  final price = (s['price'] as num?)?.toDouble() ?? 0;
+                  final small = (s['price_small'] as num?)?.toDouble();
+                  final medium = (s['price_medium'] as num?)?.toDouble();
+                  final large = (s['price_large'] as num?)?.toDouble();
+                  return ListTile(
+                    leading: Text(_emoji(type),
+                        style: const TextStyle(fontSize: 24)),
+                    title: Text(_capitalize(type),
+                        style: AppTextStyles.body
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      _priceSummary(type, price, small, medium, large),
+                      style: AppTextStyles.bodySecondary
+                          .copyWith(color: AppColors.primary),
+                    ),
+                    trailing: TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ServiceDetailScreen(
+                            serviceData: s,
+                            walkerData: widget.walkerData,
+                          ),
+                        ),
+                      ),
+                      child: const Text('Ver'),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -383,13 +388,13 @@ class _WalkerResultCard extends StatelessWidget {
       double? medium, double? large) {
     if (type == 'baño') {
       final parts = <String>[];
-      if (small != null) parts.add('Peq: \$${small.toStringAsFixed(0)}');
-      if (medium != null) parts.add('Med: \$${medium.toStringAsFixed(0)}');
-      if (large != null) parts.add('Gran: \$${large.toStringAsFixed(0)}');
-      return parts.isEmpty ? 'Sin precio' : parts.join(' · ');
+      if (small != null) parts.add('Pequeño: \$${small.toStringAsFixed(0)}');
+      if (medium != null) parts.add('Mediano: \$${medium.toStringAsFixed(0)}');
+      if (large != null) parts.add('Grande: \$${large.toStringAsFixed(0)}');
+      return parts.isEmpty ? 'Sin precio' : parts.join('\n');
     }
     final unit = type == 'cuidado' ? '/día' : '/hora';
-    return '\$${price.toStringAsFixed(0)}$unit';
+    return '\$${price.toStringAsFixed(0)} COP$unit';
   }
 
   String _emoji(String type) {
