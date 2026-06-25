@@ -39,16 +39,19 @@ class PaymentProvider extends ChangeNotifier {
         },
       );
 
+      debugPrint('[PaymentProvider] Edge Function status: ${res.status}');
+      debugPrint('[PaymentProvider] Edge Function data: ${res.data}');
+
       if (res.status != 200) {
-        _error = 'Error al generar el link de pago';
-        debugPrint('[PaymentProvider] Edge Function error: ${res.data}');
+        final detail = res.data?['detail']?.toString() ?? res.data?.toString() ?? '';
+        _error = 'Error al generar el link de pago: $detail';
         notifyListeners();
         return null;
       }
 
       final url = res.data['paymentUrl'] as String?;
       if (url == null) {
-        _error = 'No se recibió URL de pago';
+        _error = 'No se recibió URL de pago. Respuesta: ${res.data}';
         notifyListeners();
         return null;
       }

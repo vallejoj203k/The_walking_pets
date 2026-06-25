@@ -49,7 +49,7 @@ serve(async (req) => {
         collect_shipping: false,
         currency: "COP",
         amount_in_cents: Math.round(amountInCents),
-        redirect_url: redirectUrl ?? "thewalkingpets://payment-result",
+        redirect_url: redirectUrl ?? "https://thewalkingpets.app/payment-result",
         customer_data: {
           customer_email: ownerEmail,
           customer_full_name: ownerName,
