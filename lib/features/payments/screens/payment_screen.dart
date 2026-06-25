@@ -95,11 +95,18 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     }
 
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      setState(() => _waitingForPayment = true);
-    } else {
-      _showError('No se pudo abrir el link de pago');
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) {
+        setState(() => _waitingForPayment = true);
+      } else {
+        // Fallback: intentar con in-app browser
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        setState(() => _waitingForPayment = true);
+      }
+    } catch (e) {
+      debugPrint('[PaymentScreen] launchUrl error: $e');
+      _showError('No se pudo abrir el link de pago: $e');
     }
   }
 
