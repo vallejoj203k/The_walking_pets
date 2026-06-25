@@ -64,7 +64,9 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
   // Cuando el usuario vuelve a la app después de pagar en Wompi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _waitingForPayment) {
+    if (state == AppLifecycleState.resumed) {
+      // Siempre verificar al volver, aunque _waitingForPayment sea false
+      // (cubre el caso en que la app se reinició)
       _startPolling();
     }
   }
