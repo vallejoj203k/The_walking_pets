@@ -64,17 +64,15 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
-  /// Verifica el estado de la transacción de un booking en Supabase.
+  /// Verifica el estado del pago consultando Wompi directamente via Edge Function.
   Future<String?> checkPaymentStatus(String bookingId) async {
     try {
-      final data = await SupabaseService.client
-          .from('transactions')
-          .select('status')
-          .eq('booking_id', bookingId)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-      return data?['status'] as String?;
+      final res = await SupabaseService.client.functions.invoke(
+        'check-wompi-payment',
+        body: {'bookingId': bookingId},
+      );
+      debugPrint('[PaymentProvider] checkPaymentStatus: ${res.data}');
+      return res.data?['status'] as String?;
     } catch (e) {
       debugPrint('[PaymentProvider] checkPaymentStatus: $e');
       return null;
