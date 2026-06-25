@@ -5,8 +5,11 @@ class AppConstants {
   static const double platformCommission = 0.10; // 10%
 
   // Pricing (COP)
-  static const double minServicePrice = 10000;   // $10.000 mínimo
-  static const double maxServicePrice = 500000;  // $500.000 máximo (sin límite real)
+  static const double minServicePrice = 12000;     // $12.000 mínimo
+  static const double additionalPetRate = 0.40;    // 40% por mascota adicional
+  static const double wompiPercentage = 0.0265;    // 2.65%
+  static const double wompiFixed = 700;            // $700 fijo
+  static const double wompiIva = 0.19;             // IVA 19% sobre fee Wompi
 
   // Admin
   static const String adminEmail = 'vallejoj203k@gmail.com';

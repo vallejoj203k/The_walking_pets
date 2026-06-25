@@ -130,6 +130,8 @@ class BookingProvider extends ChangeNotifier {
     required String ownerId,
     required String serviceId,
     required String petId,
+    List<String>? petIds,
+    double? totalAmount,
     required DateTime scheduledDate,
     String? notes,
   }) async {
@@ -137,12 +139,15 @@ class BookingProvider extends ChangeNotifier {
     try {
       final id = _uuid.v4();
       final now = DateTime.now().toIso8601String();
+      final allPetIds = petIds ?? [petId];
       final data = {
         'id': id,
         'walker_id': walkerId,
         'owner_id': ownerId,
         'service_id': serviceId,
         'pet_id': petId,
+        'pet_ids': allPetIds,
+        'total_amount': totalAmount,
         'status': 'pending',
         'scheduled_date': scheduledDate.toUtc().toIso8601String(),
         'notes': notes,

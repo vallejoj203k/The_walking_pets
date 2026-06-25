@@ -3,7 +3,9 @@ class BookingModel {
   final String walkerId;
   final String ownerId;
   final String? serviceId;
-  final String petId;
+  final String petId;          // primera mascota (compatibilidad)
+  final List<String> petIds;   // todas las mascotas seleccionadas
+  final double? totalAmount;   // monto total cobrado al dueño
   String status;
   final DateTime scheduledDate;
   String? notes;
@@ -16,8 +18,8 @@ class BookingModel {
   String? serviceType;
   double? servicePrice;
   String? petName;
-  String? walkerUserId; // auth user_id of the walker
-  String? ownerUserId; // auth user_id of the owner
+  String? walkerUserId;
+  String? ownerUserId;
 
   BookingModel({
     required this.id,
@@ -25,6 +27,8 @@ class BookingModel {
     required this.ownerId,
     this.serviceId,
     required this.petId,
+    List<String>? petIds,
+    this.totalAmount,
     required this.status,
     required this.scheduledDate,
     this.notes,
@@ -37,15 +41,25 @@ class BookingModel {
     this.petName,
     this.walkerUserId,
     this.ownerUserId,
-  });
+  }) : petIds = petIds ?? [petId];
 
   factory BookingModel.fromMap(Map<String, dynamic> map) {
+    final petId = map['pet_id'] as String;
+    final rawIds = map['pet_ids'];
+    List<String> petIds;
+    if (rawIds is List && rawIds.isNotEmpty) {
+      petIds = List<String>.from(rawIds);
+    } else {
+      petIds = [petId];
+    }
     return BookingModel(
       id: map['id'] as String,
       walkerId: map['walker_id'] as String,
       ownerId: map['owner_id'] as String,
       serviceId: map['service_id'] as String?,
-      petId: map['pet_id'] as String,
+      petId: petId,
+      petIds: petIds,
+      totalAmount: (map['total_amount'] as num?)?.toDouble(),
       status: map['status'] as String,
       scheduledDate: DateTime.parse(map['scheduled_date'] as String).toLocal(),
       notes: map['notes'] as String?,
@@ -54,38 +68,20 @@ class BookingModel {
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'walker_id': walkerId,
-      'owner_id': ownerId,
-      'service_id': serviceId,
-      'pet_id': petId,
-      'status': status,
-      'scheduled_date': scheduledDate.toUtc().toIso8601String(),
-      'notes': notes,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-  }
+  int get additionalPets => petIds.length > 1 ? petIds.length - 1 : 0;
 
   String get statusLabel {
     switch (status) {
-      case 'pending':
-        return 'Pendiente';
-      case 'accepted':
-        return 'Aceptado';
-      case 'in_progress':
-        return 'En progreso';
-      case 'completed':
-        return 'Completado';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
+      case 'pending': return 'Pendiente';
+      case 'accepted': return 'Aceptado';
+      case 'in_progress': return 'En progreso';
+      case 'completed': return 'Completado';
+      case 'cancelled': return 'Cancelado';
+      default: return status;
     }
   }
 
-  bool get canCancel =>
-      status == 'pending' || status == 'accepted';
+  bool get canCancel => status == 'pending' || status == 'accepted';
   bool get canComplete => status == 'in_progress';
   bool get isActive =>
       status == 'pending' || status == 'accepted' || status == 'in_progress';

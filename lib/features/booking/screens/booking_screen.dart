@@ -11,6 +11,7 @@ import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_elevated_button.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
+import '../../../config/constants/app_constants.dart';
 
 class BookingScreen extends StatefulWidget {
   final ServiceModel service;
@@ -26,7 +27,7 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final _notesCtrl = TextEditingController();
   DateTime? _scheduledDate;
-  String? _selectedPetId;
+  final Set<String> _selectedPetIds = {};
   String? _ownerId;
   bool _loading = false;
 
@@ -67,6 +68,23 @@ class _BookingScreenState extends State<BookingScreen> {
     });
   }
 
+  double _basePrice(List<PetModel> pets) {
+    if (widget.service.type == 'baño' && _selectedPetIds.isNotEmpty) {
+      final pet = pets.firstWhere((p) => p.id == _selectedPetIds.first,
+          orElse: () => pets.first);
+      return widget.service.priceForSize(pet.size) ?? widget.service.price;
+    }
+    return widget.service.price;
+  }
+
+  double _totalPrice(List<PetModel> pets) {
+    final base = _basePrice(pets);
+    final additional = _selectedPetIds.length > 1
+        ? (_selectedPetIds.length - 1) * base * AppConstants.additionalPetRate
+        : 0.0;
+    return base + additional;
+  }
+
   Future<void> _confirm() async {
     if (_scheduledDate == null) {
       _showError('Selecciona una fecha y hora');
@@ -76,8 +94,8 @@ class _BookingScreenState extends State<BookingScreen> {
       _showError('La fecha no puede ser en el pasado');
       return;
     }
-    if (_selectedPetId == null) {
-      _showError('Selecciona una mascota');
+    if (_selectedPetIds.isEmpty) {
+      _showError('Selecciona al menos una mascota');
       return;
     }
     if (_ownerId == null) {
@@ -85,12 +103,17 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
+    final pets = context.read<ProfileProvider>().pets;
+    final total = _totalPrice(pets);
+
     setState(() => _loading = true);
     final success = await context.read<BookingProvider>().createBooking(
           walkerId: widget.walker.id,
           ownerId: _ownerId!,
           serviceId: widget.service.id,
-          petId: _selectedPetId!,
+          petId: _selectedPetIds.first,
+          petIds: _selectedPetIds.toList(),
+          totalAmount: total,
           scheduledDate: _scheduledDate!,
           notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         );
@@ -128,6 +151,10 @@ class _BookingScreenState extends State<BookingScreen> {
     final profile = context.watch<ProfileProvider>();
     final pets = profile.pets;
     final fmt = DateFormat('dd/MM/yyyy HH:mm', 'es');
+    final base = _selectedPetIds.isNotEmpty ? _basePrice(pets) : widget.service.price;
+    final total = _selectedPetIds.isNotEmpty ? _totalPrice(pets) : null;
+    final additionalCount = _selectedPetIds.length > 1 ? _selectedPetIds.length - 1 : 0;
+    final numFmt = NumberFormat('#,###', 'es_CO');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -149,7 +176,19 @@ class _BookingScreenState extends State<BookingScreen> {
                     _Row('Paseador', widget.walker.name),
                     _Row('Servicio',
                         '${widget.service.typeEmoji} ${widget.service.typeLabel}'),
-                    _Row('Precio', _priceDisplay(profile.pets)),
+                    _Row('Precio base', '\$${numFmt.format(base)} COP'),
+                    if (additionalCount > 0) ...[
+                      _Row(
+                        'Mascotas adicionales',
+                        '$additionalCount × 40% = \$${numFmt.format(additionalCount * base * AppConstants.additionalPetRate)} COP',
+                      ),
+                      const Divider(height: 16),
+                      _Row(
+                        'Total servicio',
+                        '\$${numFmt.format(total!)} COP',
+                        bold: true,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -189,8 +228,13 @@ class _BookingScreenState extends State<BookingScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Mascota
-            Text('Mascota', style: AppTextStyles.heading3),
+            // Mascotas (multi-select)
+            Text('Mascotas', style: AppTextStyles.heading3),
+            const SizedBox(height: 4),
+            Text(
+              'Puedes seleccionar varias mascotas. Cada mascota adicional cuesta 40% del precio base.',
+              style: AppTextStyles.caption,
+            ),
             const SizedBox(height: 10),
             if (pets.isEmpty)
               Container(
@@ -204,15 +248,26 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: TextStyle(color: AppColors.textSecondary)),
               )
             else
-              ...pets.map((pet) => RadioListTile<String>(
-                    value: pet.id,
-                    groupValue: _selectedPetId,
-                    onChanged: (v) => setState(() => _selectedPetId = v),
-                    title: Text('${pet.typeEmoji} ${pet.name}'),
-                    subtitle: Text(
-                        '${_capitalize(pet.type)} · ${_capitalize(pet.size)}'),
-                    activeColor: AppColors.primary,
-                  )),
+              ...pets.map((pet) {
+                final selected = _selectedPetIds.contains(pet.id);
+                return CheckboxListTile(
+                  value: selected,
+                  onChanged: (checked) {
+                    setState(() {
+                      if (checked == true) {
+                        _selectedPetIds.add(pet.id);
+                      } else {
+                        _selectedPetIds.remove(pet.id);
+                      }
+                    });
+                  },
+                  title: Text('${pet.typeEmoji} ${pet.name}'),
+                  subtitle: Text(
+                      '${_capitalize(pet.type)} · ${_capitalize(pet.size)}'),
+                  activeColor: AppColors.primary,
+                  controlAffinity: ListTileControlAffinity.leading,
+                );
+              }),
             const SizedBox(height: 20),
 
             // Notas
@@ -239,19 +294,6 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  String _priceDisplay(List<PetModel> pets) {
-    if (widget.service.type == 'baño' && _selectedPetId != null) {
-      final idx = pets.indexWhere((p) => p.id == _selectedPetId);
-      if (idx != -1) {
-        final p = widget.service.priceForSize(pets[idx].size);
-        if (p != null) {
-          return '\$${p.toStringAsFixed(0)} COP (${_capitalize(pets[idx].size)})';
-        }
-      }
-    }
-    return widget.service.priceSummary;
-  }
-
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
@@ -259,8 +301,9 @@ class _BookingScreenState extends State<BookingScreen> {
 class _Row extends StatelessWidget {
   final String label;
   final String value;
+  final bool bold;
 
-  const _Row(this.label, this.value);
+  const _Row(this.label, this.value, {this.bold = false});
 
   @override
   Widget build(BuildContext context) {
@@ -269,11 +312,16 @@ class _Row extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 90,
+            width: 110,
             child: Text(label, style: AppTextStyles.bodySecondary),
           ),
           Expanded(
-            child: Text(value, style: AppTextStyles.body),
+            child: Text(
+              value,
+              style: bold
+                  ? AppTextStyles.body.copyWith(fontWeight: FontWeight.w700)
+                  : AppTextStyles.body,
+            ),
           ),
         ],
       ),
