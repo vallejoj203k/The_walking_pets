@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const WOMPI_BASE = "https://sandbox.wompi.co/v1";
+const WOMPI_BASE = "https://production.wompi.co/v1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
