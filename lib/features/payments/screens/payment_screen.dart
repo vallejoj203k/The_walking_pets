@@ -84,7 +84,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
       bookingId: widget.booking.id,
       totalAmount: _grandTotal,
       ownerEmail: auth.userModel?.email ?? '',
-      ownerName: auth.userModel?.name ?? '',
+      ownerName: auth.userModel?.email ?? '',
     );
 
     setState(() => _processing = false);
