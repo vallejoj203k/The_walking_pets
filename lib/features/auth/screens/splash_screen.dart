@@ -25,8 +25,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final authProvider = context.read<AuthProvider>();
 
-    if (authProvider.status == AuthStatus.initial) {
-      await Future.delayed(const Duration(milliseconds: 500));
+    // Esperar hasta que Supabase restaure la sesión del storage (máx 3s)
+    int waited = 0;
+    while (authProvider.status == AuthStatus.initial && waited < 3000) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      waited += 200;
     }
 
     _navigate(authProvider);

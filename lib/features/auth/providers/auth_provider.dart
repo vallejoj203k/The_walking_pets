@@ -25,7 +25,9 @@ class AuthProvider extends ChangeNotifier {
   void _init() {
     _authService.authStateChanges.listen((data) async {
       final event = data.event;
-      if (event == AuthChangeEvent.signedIn) {
+      if (event == AuthChangeEvent.signedIn ||
+          event == AuthChangeEvent.initialSession ||
+          event == AuthChangeEvent.tokenRefreshed) {
         await _loadCurrentUser();
       } else if (event == AuthChangeEvent.signedOut) {
         _userModel = null;
@@ -33,9 +35,6 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
-
-    // Check existing session
-    _loadCurrentUser();
   }
 
   Future<void> _loadCurrentUser() async {
