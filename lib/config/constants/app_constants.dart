@@ -4,6 +4,10 @@ class AppConstants {
   // Payments
   static const double platformCommission = 0.10; // 10%
 
+  // Pricing (COP)
+  static const double minServicePrice = 10000;   // $10.000 mínimo
+  static const double maxServicePrice = 500000;  // $500.000 máximo (sin límite real)
+
   // Admin
   static const String adminEmail = 'vallejoj203k@gmail.com';
 

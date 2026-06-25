@@ -222,7 +222,7 @@ class _CreateServiceScreenState extends State<CreateServiceScreen> {
                     labelText: _isCare
                         ? 'Precio por día (COP)'
                         : 'Precio por hora (COP)',
-                    hintText: _isCare ? 'Ej: 80000' : 'Ej: 25000',
+                    hintText: _isCare ? 'Ej: 50000' : 'Ej: 20000',
                     prefixText: '\$ ',
                     suffixText: _isCare ? '/día' : '/hora',
                   ),
@@ -234,6 +234,9 @@ class _CreateServiceScreenState extends State<CreateServiceScreen> {
                     if (p == null || p <= 0) {
                       return 'Ingresa un precio válido';
                     }
+                    if (p < AppConstants.minServicePrice) {
+                      return 'El precio mínimo es \$${AppConstants.minServicePrice.toStringAsFixed(0)} COP';
+                    }
                     return null;
                   },
                 ),
@@ -241,19 +244,19 @@ class _CreateServiceScreenState extends State<CreateServiceScreen> {
                 // Baño: tres precios por tamaño
                 _BathPriceField(
                   label: '🐕 Perro pequeño',
-                  hint: 'Ej: 30000',
+                  hint: 'Ej: 25000',
                   controller: _priceSmallCtrl,
                 ),
                 const SizedBox(height: 12),
                 _BathPriceField(
                   label: '🐕 Perro mediano',
-                  hint: 'Ej: 45000',
+                  hint: 'Ej: 40000',
                   controller: _priceMediumCtrl,
                 ),
                 const SizedBox(height: 12),
                 _BathPriceField(
                   label: '🐕 Perro grande',
-                  hint: 'Ej: 60000',
+                  hint: 'Ej: 55000',
                   controller: _priceLargeCtrl,
                 ),
                 // Validar que al menos uno tenga precio
@@ -359,6 +362,9 @@ class _BathPriceField extends StatelessWidget {
         if (v == null || v.trim().isEmpty) return null; // opcional
         final p = double.tryParse(v.trim());
         if (p == null || p <= 0) return 'Precio inválido';
+        if (p < AppConstants.minServicePrice) {
+          return 'Mínimo \$${AppConstants.minServicePrice.toStringAsFixed(0)} COP';
+        }
         return null;
       },
     );
