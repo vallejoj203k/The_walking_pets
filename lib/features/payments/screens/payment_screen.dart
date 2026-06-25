@@ -46,7 +46,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     return base + base * AppConstants.wompiIva;
   }
 
-  double get _grandTotal => _serviceTotal + _platformCommission + _wompiFee;
+  double get _grandTotal => (_serviceTotal + _platformCommission + _wompiFee).roundToDouble();
 
   @override
   void initState() {
