@@ -112,18 +112,57 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> _checkNow() async {
+    setState(() => _processing = true);
+    final status = await context
+        .read<PaymentProvider>()
+        .checkPaymentStatus(widget.booking.id);
+    setState(() => _processing = false);
+
+    if (!mounted) return;
+
+    if (status == 'approved') {
+      _pollTimer?.cancel();
+      setState(() => _waitingForPayment = false);
+      Navigator.of(context).pushReplacementNamed('/owner-home');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Pago exitoso! El paseador ha sido notificado.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else if (status == 'declined' || status == 'failed') {
+      _pollTimer?.cancel();
+      setState(() => _waitingForPayment = false);
+      _showError('El pago fue rechazado. Inténtalo de nuevo.');
+    } else if (status == 'pending') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El pago aún está pendiente de confirmación por Wompi. Espera unos segundos e intenta de nuevo.'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } else {
+      // Sin transacción aún
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontró el pago. ¿Completaste el pago en Wompi?'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   void _startPolling() {
     _pollTimer?.cancel();
-    // Verifica el estado cada 3 segundos hasta 2 minutos
+    setState(() => _waitingForPayment = true);
     int attempts = 0;
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _pollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
       attempts++;
-      if (attempts > 40 || !mounted) {
+      if (attempts > 30 || !mounted) {
         timer.cancel();
-        setState(() => _waitingForPayment = false);
         return;
       }
-
       final status = await context
           .read<PaymentProvider>()
           .checkPaymentStatus(widget.booking.id);
@@ -284,7 +323,7 @@ class _PaymentScreenState extends State<PaymentScreen> with WidgetsBindingObserv
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
-                  onPressed: _startPolling,
+                  onPressed: _processing ? null : _checkNow,
                   child: const Text('Ya pagué, verificar ahora'),
                 ),
               ),
