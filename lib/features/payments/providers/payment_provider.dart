@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/models/transaction_model.dart';
-import '../../../config/constants/app_constants.dart';
 
 class PaymentProvider extends ChangeNotifier {
   List<TransactionModel> _ownerTransactions = [];
@@ -18,82 +17,63 @@ class PaymentProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  /// Simulates payment: creates transaction with status 'approved' and updates walker_balance
-  Future<TransactionModel?> createTransaction({
+  /// Llama a la Edge Function de Supabase para crear un link de pago en Wompi.
+  /// Retorna la URL de pago o null si hubo error.
+  Future<String?> createWompiPaymentLink({
     required String bookingId,
-    required String walkerId,
-    required String walkerUserId,
-    required String ownerId,
-    required double amount,
-    required String paymentMethod,
+    required double totalAmount,
+    required String ownerEmail,
+    required String ownerName,
   }) async {
+    _error = null;
     try {
-      final now = DateTime.now().toUtc().toIso8601String();
-      final walkerAmount =
-          amount * (1 - AppConstants.platformCommission);
+      final amountInCents = (totalAmount * 100).round();
+      final res = await SupabaseService.client.functions.invoke(
+        'create-wompi-payment',
+        body: {
+          'bookingId': bookingId,
+          'amountInCents': amountInCents,
+          'description': 'Servicio - The Walking Pets',
+          'ownerEmail': ownerEmail,
+          'ownerName': ownerName,
+        },
+      );
 
-      final data = await SupabaseService.client
-          .from('transactions')
-          .insert({
-            'booking_id': bookingId,
-            'walker_id': walkerId,
-            'owner_id': ownerId,
-            'amount': amount,
-            'status': 'approved',
-            'payment_method': paymentMethod,
-            'created_at': now,
-            'completed_at': now,
-            'updated_at': now,
-          })
-          .select()
-          .single();
-
-      // Update walker balance
-      await SupabaseService.client.from('walker_balance').upsert({
-        'walker_id': walkerUserId,
-        'total_earned': walkerAmount,
-        'available_balance': walkerAmount,
-        'pending_balance': 0,
-        'updated_at': now,
-      }, onConflict: 'walker_id');
-
-      // Try to increment (using raw update)
-      try {
-        final existing = await SupabaseService.client
-            .from('walker_balance')
-            .select()
-            .eq('walker_id', walkerUserId)
-            .maybeSingle();
-        if (existing != null) {
-          final currentTotal =
-              (existing['total_earned'] as num?)?.toDouble() ?? 0;
-          final currentAvailable =
-              (existing['available_balance'] as num?)?.toDouble() ?? 0;
-          await SupabaseService.client
-              .from('walker_balance')
-              .update({
-                'total_earned': currentTotal + walkerAmount,
-                'available_balance': currentAvailable + walkerAmount,
-                'updated_at': now,
-              })
-              .eq('walker_id', walkerUserId);
-        } else {
-          await SupabaseService.client.from('walker_balance').insert({
-            'walker_id': walkerUserId,
-            'total_earned': walkerAmount,
-            'available_balance': walkerAmount,
-            'pending_balance': 0,
-            'updated_at': now,
-          });
-        }
-      } catch (e) {
-        debugPrint('[PaymentProvider] wallet update: $e');
+      if (res.status != 200) {
+        _error = 'Error al generar el link de pago';
+        debugPrint('[PaymentProvider] Edge Function error: ${res.data}');
+        notifyListeners();
+        return null;
       }
 
-      return TransactionModel.fromMap(data);
+      final url = res.data['paymentUrl'] as String?;
+      if (url == null) {
+        _error = 'No se recibió URL de pago';
+        notifyListeners();
+        return null;
+      }
+      return url;
     } catch (e) {
-      debugPrint('[PaymentProvider] createTransaction: $e');
-      _error = 'Error al procesar el pago.';
+      _error = 'Error al conectar con el servidor de pagos';
+      debugPrint('[PaymentProvider] createWompiPaymentLink: $e');
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Verifica el estado de la transacción de un booking en Supabase.
+  Future<String?> checkPaymentStatus(String bookingId) async {
+    try {
+      final data = await SupabaseService.client
+          .from('transactions')
+          .select('status')
+          .eq('booking_id', bookingId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return data?['status'] as String?;
+    } catch (e) {
+      debugPrint('[PaymentProvider] checkPaymentStatus: $e');
       return null;
     }
   }
