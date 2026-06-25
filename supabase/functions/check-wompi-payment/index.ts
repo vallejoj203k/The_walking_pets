@@ -54,26 +54,41 @@ serve(async (req) => {
       );
     }
 
-    // Consultar Wompi por transacciones de este payment link
-    const wompiRes = await fetch(
-      `${WOMPI_BASE}/transactions?payment_link_id=${txRow.wompi_link_id}`,
+    // Consultar Wompi por el payment link directamente
+    const linkRes = await fetch(
+      `${WOMPI_BASE}/payment_links/${txRow.wompi_link_id}`,
       {
         headers: { Authorization: `Bearer ${privateKey}` },
       }
     );
 
-    const wompiData = await wompiRes.json();
-    console.log("Wompi transactions:", JSON.stringify(wompiData));
+    const linkData = await linkRes.json();
+    console.log("Wompi payment link:", JSON.stringify(linkData));
 
-    if (!wompiRes.ok || !wompiData.data?.length) {
+    // Obtener el transaction_id del payment link
+    const transactionId = linkData.data?.transaction_id;
+    if (!linkRes.ok || !transactionId) {
       return new Response(
         JSON.stringify({ status: txRow.status ?? "pending" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Tomar la transacción más reciente
-    const wTx = wompiData.data[0];
+    // Obtener detalles de la transacción
+    const txRes = await fetch(`${WOMPI_BASE}/transactions/${transactionId}`, {
+      headers: { Authorization: `Bearer ${privateKey}` },
+    });
+    const txData = await txRes.json();
+    console.log("Wompi transaction:", JSON.stringify(txData));
+
+    if (!txRes.ok || !txData.data) {
+      return new Response(
+        JSON.stringify({ status: txRow.status ?? "pending" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const wTx = txData.data;
     const statusMap: Record<string, string> = {
       APPROVED: "approved",
       DECLINED: "declined",
