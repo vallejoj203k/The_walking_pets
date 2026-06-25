@@ -11,21 +11,15 @@ serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get("x-event-checksum");
 
-    // Verificar firma del webhook
     if (eventsSecret && signature) {
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(eventsSecret),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
+        "raw", encoder.encode(eventsSecret),
+        { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
       );
       const sigBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
       const computed = Array.from(new Uint8Array(sigBuffer))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
+        .map((b) => b.toString(16).padStart(2, "0")).join("");
       if (computed !== signature) {
         console.error("Firma inválida");
         return new Response("Unauthorized", { status: 401 });
@@ -39,22 +33,17 @@ serve(async (req) => {
       const tx = event.data?.transaction;
       if (!tx) return new Response("ok");
 
-      const wompiStatus = tx.status; // APPROVED, DECLINED, VOIDED, ERROR
-      const linkId = tx.payment_link_id;
-
       const statusMap: Record<string, string> = {
-        APPROVED: "approved",
-        DECLINED: "declined",
-        VOIDED: "cancelled",
-        ERROR: "failed",
+        APPROVED: "approved", DECLINED: "declined",
+        VOIDED: "cancelled", ERROR: "failed",
       };
-
-      const newStatus = statusMap[wompiStatus] ?? "pending";
+      const newStatus = statusMap[tx.status] ?? "pending";
       const supabase = createClient(supabaseUrl, supabaseKey);
       const now = new Date().toISOString();
 
-      // Actualizar transacción
-      const { data: txRow } = await supabase
+      console.log("Actualizando transacción con wompi_link_id:", tx.payment_link_id);
+
+      const { data: txRow, error: txError } = await supabase
         .from("transactions")
         .update({
           status: newStatus,
@@ -63,43 +52,56 @@ serve(async (req) => {
           updated_at: now,
           ...(newStatus === "approved" ? { completed_at: now } : {}),
         })
-        .eq("wompi_link_id", linkId)
-        .select("booking_id, walker_id, amount")
-        .single();
+        .eq("wompi_link_id", tx.payment_link_id)
+        .select("booking_id, walker_id, owner_id, amount")
+        .maybeSingle();
 
-      // Si aprobado: actualizar booking y balance del paseador
+      console.log("txRow:", JSON.stringify(txRow), "error:", JSON.stringify(txError));
+
       if (newStatus === "approved" && txRow) {
-        await supabase
+        // Actualizar booking a completado
+        const { error: bookingError } = await supabase
           .from("bookings")
           .update({ status: "completed", updated_at: now })
           .eq("id", txRow.booking_id);
 
-        // El paseador recibe el monto sin comisión de plataforma (10%)
-        const walkerAmount = txRow.amount * 0.9;
+        console.log("Booking update error:", JSON.stringify(bookingError));
 
-        const { data: existing } = await supabase
-          .from("walker_balance")
-          .select()
-          .eq("walker_id", txRow.walker_id)
+        // Obtener user_id del paseador desde la tabla walkers
+        const { data: walkerRow } = await supabase
+          .from("walkers")
+          .select("user_id")
+          .eq("id", txRow.walker_id)
           .maybeSingle();
 
-        if (existing) {
-          await supabase
+        const walkerUserId = walkerRow?.user_id;
+        console.log("Walker user_id:", walkerUserId);
+
+        if (walkerUserId) {
+          const walkerAmount = txRow.amount * 0.9;
+
+          const { data: existing } = await supabase
             .from("walker_balance")
-            .update({
+            .select()
+            .eq("walker_id", walkerUserId)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase.from("walker_balance").update({
               total_earned: (existing.total_earned ?? 0) + walkerAmount,
               available_balance: (existing.available_balance ?? 0) + walkerAmount,
               updated_at: now,
-            })
-            .eq("walker_id", txRow.walker_id);
-        } else {
-          await supabase.from("walker_balance").insert({
-            walker_id: txRow.walker_id,
-            total_earned: walkerAmount,
-            available_balance: walkerAmount,
-            pending_balance: 0,
-            updated_at: now,
-          });
+            }).eq("walker_id", walkerUserId);
+          } else {
+            await supabase.from("walker_balance").insert({
+              walker_id: walkerUserId,
+              total_earned: walkerAmount,
+              available_balance: walkerAmount,
+              pending_balance: 0,
+              updated_at: now,
+            });
+          }
+          console.log("Balance actualizado para walker:", walkerUserId, "monto:", walkerAmount);
         }
       }
     }

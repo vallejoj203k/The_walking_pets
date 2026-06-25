@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const WOMPI_BASE = "https://sandbox.wompi.co/v1"; // cambiar a https://production.wompi.co/v1 en producción
+const WOMPI_BASE = "https://sandbox.wompi.co/v1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,17 +25,17 @@ serve(async (req) => {
       );
     }
 
-    const { bookingId, amountInCents, description, ownerEmail, ownerName, redirectUrl } =
-      await req.json();
+    const { bookingId, amountInCents, description, ownerEmail, ownerName } = await req.json();
 
-    if (!bookingId || !amountInCents) {
-      return new Response(
-        JSON.stringify({ error: "bookingId y amountInCents son requeridos" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Crear payment link en Wompi
+    // Obtener walker_id y owner_id del booking
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("walker_id, owner_id")
+      .eq("id", bookingId)
+      .single();
+
     const wompiRes = await fetch(`${WOMPI_BASE}/payment_links`, {
       method: "POST",
       headers: {
@@ -49,7 +49,7 @@ serve(async (req) => {
         collect_shipping: false,
         currency: "COP",
         amount_in_cents: Math.round(amountInCents),
-        redirect_url: redirectUrl ?? "https://thewalkingpets.app/payment-result",
+        redirect_url: "https://thewalkingpets.app/payment-result",
         customer_data: {
           customer_email: ownerEmail,
           customer_full_name: ownerName,
@@ -58,24 +58,26 @@ serve(async (req) => {
     });
 
     const wompiData = await wompiRes.json();
+    console.log("Wompi response:", JSON.stringify(wompiData));
 
     if (!wompiRes.ok) {
-      console.error("Wompi error:", JSON.stringify(wompiData));
       return new Response(
-        JSON.stringify({ error: "Error al crear el link de pago", detail: wompiData }),
+        JSON.stringify({ error: "Error Wompi", detail: wompiData }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const paymentLink = wompiData.data;
-    const paymentUrl = `${WOMPI_BASE.replace("/v1", "")}/p/${paymentLink.id}`;
+    const paymentUrl = paymentLink.payment_link_url ??
+                       `https://checkout.wompi.co/l/${paymentLink.id}`;
 
-    // Guardar transacción en Supabase con status 'pending'
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log("Payment URL:", paymentUrl);
+
     const now = new Date().toISOString();
-
     await supabase.from("transactions").insert({
       booking_id: bookingId,
+      walker_id: booking?.walker_id ?? null,
+      owner_id: booking?.owner_id ?? null,
       wompi_link_id: paymentLink.id,
       amount: amountInCents / 100,
       status: "pending",
@@ -85,16 +87,13 @@ serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({
-        paymentUrl,
-        linkId: paymentLink.id,
-      }),
+      JSON.stringify({ paymentUrl, linkId: paymentLink.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Error:", err);
     return new Response(
-      JSON.stringify({ error: "Error interno del servidor" }),
+      JSON.stringify({ error: String(err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
