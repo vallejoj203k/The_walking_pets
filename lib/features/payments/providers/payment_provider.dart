@@ -79,6 +79,52 @@ class PaymentProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> requestWithdrawal({
+    required String walkerUserId,
+    required double amount,
+    required String bankName,
+    required String accountType,
+    required String accountNumber,
+  }) async {
+    _error = null;
+    try {
+      final now = DateTime.now().toIso8601String();
+      await SupabaseService.client.from('withdrawal_requests').insert({
+        'walker_id': walkerUserId,
+        'amount': amount,
+        'bank_name': bankName,
+        'account_type': accountType,
+        'account_number': accountNumber,
+        'status': 'pending',
+        'created_at': now,
+        'updated_at': now,
+      });
+
+      // Descontar del balance disponible
+      final bal = await SupabaseService.client
+          .from('walker_balance')
+          .select()
+          .eq('walker_id', walkerUserId)
+          .maybeSingle();
+
+      if (bal != null) {
+        await SupabaseService.client.from('walker_balance').update({
+          'available_balance': (bal['available_balance'] as num) - amount,
+          'pending_balance': (bal['pending_balance'] as num) + amount,
+          'updated_at': now,
+        }).eq('walker_id', walkerUserId);
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al enviar solicitud de retiro.';
+      debugPrint('[PaymentProvider] requestWithdrawal: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> loadOwnerTransactions(String ownerId) async {
     _setLoading(true);
     try {

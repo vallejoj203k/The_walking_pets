@@ -5,6 +5,7 @@ import '../providers/payment_provider.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/empty_state.dart';
+import 'withdrawal_screen.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 
@@ -83,6 +84,29 @@ class _WalletScreenState extends State<WalletScreen> {
                                     '\$${(balance?.pendingBalance ?? 0).toStringAsFixed(0)}',
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.account_balance),
+                              label: const Text('Retirar fondos'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primary,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              onPressed: (balance?.availableBalance ?? 0) > 0
+                                  ? () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => WithdrawalScreen(
+                                            availableBalance: balance!.availableBalance,
+                                          ),
+                                        ),
+                                      ).then((_) => _load())
+                                  : null,
+                            ),
                           ),
                         ],
                       ),
