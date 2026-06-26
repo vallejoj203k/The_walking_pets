@@ -54,41 +54,32 @@ serve(async (req) => {
       );
     }
 
-    // Consultar Wompi por el payment link directamente
-    const linkRes = await fetch(
-      `${WOMPI_BASE}/payment_links/${txRow.wompi_link_id}`,
-      {
-        headers: { Authorization: `Bearer ${privateKey}` },
-      }
+    // Buscar transacciones de los últimos 7 días con referencia que empiece con el link ID
+    const until = new Date();
+    const from = new Date(until.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fromStr = from.toISOString().split("T")[0];
+    const untilStr = until.toISOString().split("T")[0];
+
+    const txListRes = await fetch(
+      `${WOMPI_BASE}/transactions?page=1&page_size=20&from_date=${fromStr}&until_date=${untilStr}`,
+      { headers: { Authorization: `Bearer ${privateKey}` } }
+    );
+    const txListData = await txListRes.json();
+    console.log("Wompi transactions count:", txListData.data?.length);
+
+    // Encontrar la transacción cuya referencia empiece con el wompi_link_id
+    const wTx = txListData.data?.find((t: any) =>
+      t.reference?.startsWith(txRow.wompi_link_id)
     );
 
-    const linkData = await linkRes.json();
-    console.log("Wompi payment link:", JSON.stringify(linkData));
+    console.log("Matched transaction:", JSON.stringify(wTx));
 
-    // Obtener el transaction_id del payment link
-    const transactionId = linkData.data?.transaction_id;
-    if (!linkRes.ok || !transactionId) {
+    if (!wTx) {
       return new Response(
         JSON.stringify({ status: txRow.status ?? "pending" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Obtener detalles de la transacción
-    const txRes = await fetch(`${WOMPI_BASE}/transactions/${transactionId}`, {
-      headers: { Authorization: `Bearer ${privateKey}` },
-    });
-    const txData = await txRes.json();
-    console.log("Wompi transaction:", JSON.stringify(txData));
-
-    if (!txRes.ok || !txData.data) {
-      return new Response(
-        JSON.stringify({ status: txRow.status ?? "pending" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const wTx = txData.data;
     const statusMap: Record<string, string> = {
       APPROVED: "approved",
       DECLINED: "declined",
