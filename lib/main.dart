@@ -12,6 +12,8 @@ import 'features/chat/providers/chat_provider.dart';
 import 'features/reviews/providers/reviews_provider.dart';
 import 'features/payments/providers/payment_provider.dart';
 import 'features/admin/providers/admin_provider.dart';
+import 'features/identity_verification/providers/identity_verification_provider.dart';
+import 'features/identity_verification/screens/identity_verification_screen.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
@@ -46,6 +48,7 @@ class TheWalkingPetsApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReviewsProvider()),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
+        ChangeNotifierProvider(create: (_) => IdentityVerificationProvider()),
       ],
       child: MaterialApp(
         title: 'The Walking Pets',
@@ -72,6 +75,7 @@ class TheWalkingPetsApp extends StatelessWidget {
           '/walker-home': (_) => const WalkerHomeScreen(),
           '/owner-home': (_) => const OwnerHomeScreen(),
           '/admin-home': (_) => const AdminHomeScreen(),
+          '/identity-verification': (_) => const IdentityVerificationScreen(),
         },
       ),
     );
