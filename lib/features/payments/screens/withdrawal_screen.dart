@@ -83,9 +83,10 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     );
   }
 
+  final fmt = NumberFormat('#,###', 'es_CO');
+
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,###', 'es_CO');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -175,10 +176,11 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                 controller: _amountCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Monto (COP)',
+                  labelText: 'Monto a retirar (COP)',
                   prefixText: '\$ ',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (_) => setState(() {}),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Ingresa el monto';
                   final amount = double.tryParse(v.replaceAll(',', ''));
@@ -187,9 +189,34 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                   return null;
                 },
               ),
+              const SizedBox(height: 16),
+
+              // Desglose de fees
+              Builder(builder: (context) {
+                final raw = double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
+                if (raw <= 0) return const SizedBox.shrink();
+                final fee = (1849 + raw * 0.004) * 1.19;
+                final received = raw - fee;
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      _FeeRow(label: 'Monto solicitado', value: '\$${fmt.format(raw)} COP'),
+                      _FeeRow(label: 'Fee Wompi (\$1.849 + 0.4% + IVA)', value: '-\$${fmt.format(fee.roundToDouble())} COP', secondary: true),
+                      const Divider(height: 16),
+                      _FeeRow(label: 'Recibirás en tu cuenta', value: '\$${fmt.format(received.roundToDouble())} COP', bold: true),
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(height: 8),
               Text(
-                'Monto mínimo: \$10,000 COP. El retiro se procesará en 1-3 días hábiles.',
+                'El retiro se procesará en 1-3 días hábiles.',
                 style: AppTextStyles.caption,
               ),
               const SizedBox(height: 32),
@@ -203,6 +230,29 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FeeRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool bold;
+  final bool secondary;
+
+  const _FeeRow({required this.label, required this.value, this.bold = false, this.secondary = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(label, style: secondary ? AppTextStyles.caption : AppTextStyles.bodySecondary)),
+          Text(value, style: bold ? AppTextStyles.heading3 : secondary ? AppTextStyles.caption : AppTextStyles.body),
+        ],
       ),
     );
   }
