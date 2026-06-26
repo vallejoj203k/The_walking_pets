@@ -87,7 +87,7 @@ class _WalkerProfileScreenState extends State<WalkerProfileScreen> {
       );
       if (!widget.isEditing) {
         Navigator.of(context)
-            .pushNamedAndRemoveUntil('/identity-verification', (r) => false);
+            .pushNamedAndRemoveUntil('/walker-home', (r) => false);
       }
     } else if (profile.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(

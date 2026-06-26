@@ -8,6 +8,7 @@ import '../../booking/screens/walker_requests_screen.dart';
 import '../../location/screens/share_location_screen.dart';
 import '../../chat/screens/chat_list_screen.dart';
 import '../../payments/screens/wallet_screen.dart';
+import '../../identity_verification/screens/identity_verification_screen.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
@@ -199,6 +200,25 @@ class _WalkerHomeTab extends StatelessWidget {
                                 value:
                                     walker.coverageZone ?? 'Sin definir'),
                           ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.verified_user_outlined),
+                        label: const Text('Verificación ID'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const IdentityVerificationScreen(),
+                          ),
                         ),
                       ),
                     ),
