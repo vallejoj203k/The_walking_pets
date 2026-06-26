@@ -63,31 +63,22 @@ class IdentityVerificationProvider extends ChangeNotifier {
       _status = VerificationStatus.verifying;
       notifyListeners();
 
-      // Call Edge Function to verify with Face++
-      final res = await SupabaseService.client.functions.invoke(
-        'verify-identity',
-        body: {
-          'userId': userId,
-          'cedulaFrontUrl': cedulaFrontUrl,
-          'selfieUrl': selfieUrl,
-        },
-      );
+      final now = DateTime.now().toIso8601String();
 
-      debugPrint('[IdentityVerification] result: ${res.data}');
+      // Aprobar automáticamente al subir las fotos
+      await SupabaseService.client
+          .from('identity_verifications')
+          .update({'status': 'approved', 'updated_at': now})
+          .eq('user_id', userId);
 
-      final status = res.data?['status'] as String?;
+      await SupabaseService.client
+          .from('walkers')
+          .update({'verified': true, 'verification_status': 'approved', 'updated_at': now})
+          .eq('user_id', userId);
 
-      if (status == 'approved') {
-        _status = VerificationStatus.approved;
-        notifyListeners();
-        return true;
-      } else {
-        _status = VerificationStatus.rejected;
-        _rejectionReason = res.data?['reason'] as String? ??
-            'Las fotos no coinciden. Asegúrate de que tu rostro sea visible en ambas imágenes.';
-        notifyListeners();
-        return false;
-      }
+      _status = VerificationStatus.approved;
+      notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('[IdentityVerification] error: $e');
       _status = VerificationStatus.error;
