@@ -100,7 +100,7 @@ class IdentityVerificationProvider extends ChangeNotifier {
     try {
       await SupabaseService.client.storage
           .from('identity-docs')
-          .upload(path, file, fileOptions: const FileOptions(upsert: true));
+          .upload(path, file, fileOptions: FileOptions(upsert: true));
       return SupabaseService.client.storage
           .from('identity-docs')
           .getPublicUrl(path);
