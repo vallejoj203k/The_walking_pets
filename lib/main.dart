@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/services/supabase_service.dart';
+import 'core/services/notification_service.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
 import 'features/services/providers/services_provider.dart';
@@ -29,6 +31,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
   await SupabaseService.initialize();
+  await Firebase.initializeApp();
+  await NotificationService.instance.initialize();
   runApp(const TheWalkingPetsApp());
 }
 

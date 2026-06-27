@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/models/user_model.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
@@ -89,6 +90,9 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       _error = null;
       notifyListeners();
+      if (_userModel != null) {
+        NotificationService.instance.saveTokenForUser(_userModel!.id);
+      }
       return true;
     } on AuthException catch (e) {
       _setError(_translateAuthError(e.message));
