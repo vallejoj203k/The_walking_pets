@@ -67,15 +67,20 @@ class NotificationService {
   }
 
   Future<String?> getToken() async {
-    final token = await _fcm.getToken();
-    debugPrint('[FCM] Token: $token');
-    return token;
+    try {
+      final token = await _fcm.getToken();
+      debugPrint('[FCM] Token: $token');
+      return token;
+    } catch (e) {
+      debugPrint('[FCM] getToken failed (Google Play Services may be unavailable): $e');
+      return null;
+    }
   }
 
   Future<void> saveTokenForUser(String userId) async {
-    final token = await getToken();
-    if (token == null) return;
     try {
+      final token = await getToken();
+      if (token == null) return;
       await SupabaseService.client.from('user_fcm_tokens').upsert({
         'user_id': userId,
         'token': token,

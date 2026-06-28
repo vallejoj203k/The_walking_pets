@@ -114,6 +114,7 @@ class _WalkerHomeTab extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_walker_home',
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const WalletScreen()),

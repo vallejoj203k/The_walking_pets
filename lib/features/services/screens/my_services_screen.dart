@@ -63,6 +63,7 @@ class _MyServicesScreenState extends State<MyServicesScreen> {
       backgroundColor: AppColors.background,
       appBar: const CustomAppBar(title: 'Mis Servicios', showBack: false),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_my_services',
         onPressed: () async {
           await Navigator.push(
             context,
