@@ -185,7 +185,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                   if (v == null || v.isEmpty) return 'Ingresa el monto';
                   final amount = double.tryParse(v.replaceAll(',', ''));
                   if (amount == null || amount <= 0) return 'Monto inválido';
-                  if (amount < 10000) return 'El monto mínimo es \$10,000 COP';
+                  // if (amount < 10000) return 'El monto mínimo es \$10,000 COP';
                   return null;
                 },
               ),
