@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/models/transaction_model.dart';
+import '../../../core/models/withdrawal_request_model.dart';
 
 class PaymentProvider extends ChangeNotifier {
   List<TransactionModel> _ownerTransactions = [];
   WalkerBalanceModel? _walkerBalance;
   List<TransactionModel> _walkerTransactions = [];
+  List<WithdrawalRequestModel> _withdrawalRequests = [];
   bool _isLoading = false;
   String? _error;
 
@@ -14,6 +16,8 @@ class PaymentProvider extends ChangeNotifier {
   WalkerBalanceModel? get walkerBalance => _walkerBalance;
   List<TransactionModel> get walkerTransactions =>
       List.unmodifiable(_walkerTransactions);
+  List<WithdrawalRequestModel> get withdrawalRequests =>
+      List.unmodifiable(_withdrawalRequests);
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -181,6 +185,16 @@ class PaymentProvider extends ChangeNotifier {
           .order('created_at', ascending: false);
       _walkerTransactions =
           (txData as List).map((e) => TransactionModel.fromMap(e)).toList();
+
+      final wrData = await SupabaseService.client
+          .from('withdrawal_requests')
+          .select()
+          .eq('walker_id', walkerUserId)
+          .order('created_at', ascending: false);
+      _withdrawalRequests = (wrData as List)
+          .map((e) => WithdrawalRequestModel.fromMap(e))
+          .toList();
+
       _error = null;
     } catch (e) {
       _error = 'Error al cargar balance.';

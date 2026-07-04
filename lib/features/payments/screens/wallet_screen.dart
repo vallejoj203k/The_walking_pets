@@ -6,6 +6,7 @@ import '../../../features/auth/providers/auth_provider.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/empty_state.dart';
 import 'withdrawal_screen.dart';
+import '../../../core/models/withdrawal_request_model.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 
@@ -163,10 +164,92 @@ class _WalletScreenState extends State<WalletScreen> {
                         ],
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Historial de retiros',
+                              style: AppTextStyles.heading3),
+                          const SizedBox(height: 12),
+                          if (payment.withdrawalRequests.isEmpty)
+                            const EmptyState(
+                              message: 'Aún no has solicitado retiros.',
+                              icon: Icons.account_balance_outlined,
+                            )
+                          else
+                            ...payment.withdrawalRequests
+                                .map((wr) => _WithdrawalTile(wr: wr, fmt: fmt)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _WithdrawalTile extends StatelessWidget {
+  final WithdrawalRequestModel wr;
+  final DateFormat fmt;
+
+  const _WithdrawalTile({required this.wr, required this.fmt});
+
+  Color get _statusColor {
+    switch (wr.status) {
+      case 'processed': return AppColors.success;
+      case 'failed': return AppColors.error;
+      default: return Colors.orange;
+    }
+  }
+
+  Color get _statusBg {
+    switch (wr.status) {
+      case 'processed': return AppColors.successLight;
+      case 'failed': return AppColors.error.withOpacity(0.1);
+      default: return Colors.orange.withOpacity(0.1);
+    }
+  }
+
+  IconData get _statusIcon {
+    switch (wr.status) {
+      case 'processed': return Icons.check_circle_outline;
+      case 'failed': return Icons.error_outline;
+      default: return Icons.schedule;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: _statusBg,
+          child: Icon(_statusIcon, color: _statusColor),
+        ),
+        title: Text(
+          '\$${wr.amount.toStringAsFixed(0)} COP',
+          style: AppTextStyles.body,
+        ),
+        subtitle: Text(
+          '${wr.bankName} · ${wr.accountType}\n${fmt.format(wr.createdAt)}',
+          style: AppTextStyles.caption,
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: _statusBg,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            wr.statusLabel,
+            style: AppTextStyles.caption.copyWith(color: _statusColor),
+          ),
+        ),
+      ),
     );
   }
 }
