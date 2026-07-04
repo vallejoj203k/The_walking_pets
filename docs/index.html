@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Walking Pets</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(135deg, #4CAF50, #2E7D32);
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    header img {
+      width: 100px;
+      height: 100px;
+      border-radius: 22px;
+      margin-bottom: 20px;
+      background: white;
+      padding: 10px;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .badges {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: white;
+      color: #2E7D32;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: transform 0.2s;
+    }
+
+    .badge:hover { transform: scale(1.05); }
+
+    section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      color: #2E7D32;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+
+    .feature {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .feature .icon {
+      font-size: 2.5rem;
+      margin-bottom: 14px;
+    }
+
+    .feature h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: #222;
+    }
+
+    .feature p {
+      font-size: 0.9rem;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .contact {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .contact p {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 16px;
+    }
+
+    .contact a {
+      color: #2E7D32;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+
+    footer {
+      background: #222;
+      color: #aaa;
+      text-align: center;
+      padding: 24px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🐾 The Walking Pets</h1>
+    <p>Conectamos dueños de mascotas con paseadores profesionales de confianza.</p>
+    <div class="badges">
+      <a class="badge" href="#">📱 App Store</a>
+      <a class="badge" href="#">🤖 Google Play</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>¿Qué puedes hacer?</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="icon">🔍</div>
+        <h3>Encuentra paseadores</h3>
+        <p>Busca paseadores verificados cerca de ti, revisa perfiles y calificaciones.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📅</div>
+        <h3>Reserva fácilmente</h3>
+        <p>Agenda el servicio en pocos pasos y paga de forma segura desde la app.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📍</div>
+        <h3>Rastreo en tiempo real</h3>
+        <p>Sigue el recorrido de tu mascota durante el paseo desde tu teléfono.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🔔</div>
+        <h3>Notificaciones</h3>
+        <p>Recibe alertas cuando el paseador acepta, inicia y completa el servicio.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">✅</div>
+        <h3>Paseadores verificados</h3>
+        <p>Todos los paseadores pasan por un proceso de verificación de identidad.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">💳</div>
+        <h3>Pagos seguros</h3>
+        <p>Paga con tarjeta. El dinero se libera al paseador al completar el servicio.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Contacto y soporte</h2>
+    <div class="contact">
+      <p>¿Tienes preguntas o necesitas ayuda?</p>
+      <a href="mailto:vallejoj203k@gmail.com">vallejoj203k@gmail.com</a>
+      <p style="margin-top: 16px; font-size: 0.85rem; color: #999;">Respondemos en menos de 24 horas.</p>
+    </div>
+  </section>
+
+  <footer>
+    © 2026 The Walking Pets · Juan Pablo Vallejo Cruz
+  </footer>
+
+</body>
+</html>
