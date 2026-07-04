@@ -43,7 +43,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     final user = context.read<AuthProvider>().userModel;
     if (user != null) {
       _emailCtrl.text = user.email;
-      _nameCtrl.text = user.fullName ?? '';
     }
   }
 
