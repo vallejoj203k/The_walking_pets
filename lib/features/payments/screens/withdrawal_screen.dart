@@ -11,7 +11,8 @@ import '../../../config/theme/app_text_styles.dart';
 const _banks = [
   'Bancolombia', 'Banco de Bogotá', 'Davivienda', 'BBVA', 'Nequi',
   'Daviplata', 'Banco Popular', 'AV Villas', 'Banco de Occidente',
-  'Banco Caja Social', 'Scotiabank Colpatria', 'Otro',
+  'Banco Caja Social', 'Scotiabank Colpatria', 'Nu Bank', 'Lulo Bank',
+  'Movii', 'Rappipay', 'Ualá', 'Bold', 'Bancoomeva', 'Otro',
 ];
 
 const _accountTypes = ['Ahorros', 'Corriente'];
@@ -29,14 +30,30 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
   final _accountCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _legalIdCtrl = TextEditingController();
   String? _selectedBank;
   String _accountType = 'Ahorros';
   bool _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    final user = context.read<AuthProvider>().userModel;
+    if (user != null) {
+      _emailCtrl.text = user.email;
+      _nameCtrl.text = user.fullName ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _amountCtrl.dispose();
     _accountCtrl.dispose();
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _legalIdCtrl.dispose();
     super.dispose();
   }
 
@@ -58,6 +75,9 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
       bankName: _selectedBank!,
       accountType: _accountType,
       accountNumber: _accountCtrl.text.trim(),
+      walkerName: _nameCtrl.text.trim(),
+      walkerEmail: _emailCtrl.text.trim(),
+      legalId: _legalIdCtrl.text.trim(),
     );
 
     setState(() => _loading = false);
@@ -67,7 +87,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Solicitud de retiro enviada. Se procesará en 1-3 días hábiles.'),
+          content: Text('Solicitud de retiro enviada. Se procesará en breve.'),
           backgroundColor: AppColors.success,
           duration: Duration(seconds: 5),
         ),
@@ -87,7 +107,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const CustomAppBar(title: 'Solicitar retiro'),
@@ -98,7 +117,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Balance disponible
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -120,10 +138,48 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
               ),
               const SizedBox(height: 32),
 
+              Text('Datos personales', style: AppTextStyles.heading3),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre completo',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresa tu nombre completo' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Correo electrónico',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresa tu correo' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _legalIdCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Número de cédula',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Ingresa tu número de cédula';
+                  if (v.trim().length < 6) return 'Cédula inválida';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+
               Text('Datos bancarios', style: AppTextStyles.heading3),
               const SizedBox(height: 16),
 
-              // Banco
               DropdownButtonFormField<String>(
                 value: _selectedBank,
                 decoration: const InputDecoration(
@@ -138,7 +194,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Tipo de cuenta
               DropdownButtonFormField<String>(
                 value: _accountType,
                 decoration: const InputDecoration(
@@ -152,7 +207,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Número de cuenta
               TextFormField(
                 controller: _accountCtrl,
                 keyboardType: TextInputType.number,
@@ -171,7 +225,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
               Text('Monto a retirar', style: AppTextStyles.heading3),
               const SizedBox(height: 16),
 
-              // Monto
               TextFormField(
                 controller: _amountCtrl,
                 keyboardType: TextInputType.number,
@@ -191,7 +244,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Desglose de fees
               Builder(builder: (context) {
                 final raw = double.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
                 if (raw <= 0) return const SizedBox.shrink();
@@ -216,7 +268,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
               }),
               const SizedBox(height: 8),
               Text(
-                'El retiro se procesará en 1-3 días hábiles.',
+                'El retiro se procesará automáticamente a tu cuenta bancaria.',
                 style: AppTextStyles.caption,
               ),
               const SizedBox(height: 32),

@@ -85,20 +85,33 @@ class PaymentProvider extends ChangeNotifier {
     required String bankName,
     required String accountType,
     required String accountNumber,
+    required String walkerName,
+    required String walkerEmail,
+    required String legalId,
+    String legalIdType = 'CC',
   }) async {
     _error = null;
     try {
       final now = DateTime.now().toIso8601String();
-      await SupabaseService.client.from('withdrawal_requests').insert({
-        'walker_id': walkerUserId,
-        'amount': amount,
-        'bank_name': bankName,
-        'account_type': accountType,
-        'account_number': accountNumber,
-        'status': 'pending',
-        'created_at': now,
-        'updated_at': now,
-      });
+
+      final inserted = await SupabaseService.client
+          .from('withdrawal_requests')
+          .insert({
+            'walker_id': walkerUserId,
+            'amount': amount,
+            'bank_name': bankName,
+            'account_type': accountType,
+            'account_number': accountNumber,
+            'walker_name': walkerName,
+            'walker_email': walkerEmail,
+            'legal_id': legalId,
+            'legal_id_type': legalIdType,
+            'status': 'pending',
+            'created_at': now,
+            'updated_at': now,
+          })
+          .select()
+          .single();
 
       // Descontar del balance disponible
       final bal = await SupabaseService.client
@@ -114,6 +127,13 @@ class PaymentProvider extends ChangeNotifier {
           'updated_at': now,
         }).eq('walker_id', walkerUserId);
       }
+
+      // Llamar Edge Function para procesar el retiro via Wompi
+      final res = await SupabaseService.client.functions.invoke(
+        'process-withdrawal',
+        body: {'withdrawalRequestId': inserted['id']},
+      );
+      debugPrint('[PaymentProvider] process-withdrawal: ${res.status} ${res.data}');
 
       notifyListeners();
       return true;
