@@ -155,6 +155,10 @@ class BookingProvider extends ChangeNotifier {
         'updated_at': now,
       };
       await SupabaseService.client.from('bookings').insert(data);
+
+      // Notify the walker about the new request
+      _notifyWalkerNewBooking(walkerId);
+
       _error = null;
       _setLoading(false);
       return true;
@@ -166,6 +170,30 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  void _notifyWalkerNewBooking(String walkerProfileId) async {
+    try {
+      final walkerData = await SupabaseService.client
+          .from('walkers')
+          .select('user_id')
+          .eq('id', walkerProfileId)
+          .maybeSingle();
+      final walkerUserId = walkerData?['user_id'] as String?;
+      if (walkerUserId == null) return;
+
+      await SupabaseService.client.functions.invoke(
+        'send-push-notification',
+        body: {
+          'userId': walkerUserId,
+          'title': 'Nueva solicitud de paseo',
+          'body': 'Tienes una nueva solicitud de servicio. ¡Revísala ahora!',
+          'data': {'type': 'new_booking'},
+        },
+      );
+    } catch (e) {
+      debugPrint('[BookingProvider] _notifyWalkerNewBooking: $e');
+    }
+  }
+
   Future<bool> updateBookingStatus(String bookingId, String status) async {
     try {
       await SupabaseService.client.from('bookings').update({
@@ -173,16 +201,83 @@ class BookingProvider extends ChangeNotifier {
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', bookingId);
 
+      BookingModel? booking;
       for (final list in [_ownerBookings, _walkerBookings]) {
         final idx = list.indexWhere((b) => b.id == bookingId);
-        if (idx != -1) list[idx].status = status;
+        if (idx != -1) {
+          list[idx].status = status;
+          booking ??= list[idx];
+        }
       }
       notifyListeners();
+
+      // Send push notification to the relevant user
+      if (booking != null) {
+        _sendStatusNotification(booking, status);
+      }
+
       return true;
     } catch (e) {
       debugPrint('[BookingProvider] updateStatus: $e');
       return false;
     }
+  }
+
+  void _sendStatusNotification(BookingModel booking, String status) {
+    String? targetUserId;
+    String title;
+    String body;
+
+    switch (status) {
+      case 'confirmed':
+        // Walker accepted → notify owner
+        targetUserId = booking.ownerUserId;
+        title = '¡Reserva confirmada!';
+        body = '${booking.walkerName ?? 'Tu paseador'} aceptó tu solicitud.';
+        break;
+      case 'rejected':
+        // Walker rejected → notify owner
+        targetUserId = booking.ownerUserId;
+        title = 'Reserva no disponible';
+        body = '${booking.walkerName ?? 'El paseador'} no puede atenderte en esa fecha.';
+        break;
+      case 'in_progress':
+        // Walker started → notify owner
+        targetUserId = booking.ownerUserId;
+        title = '¡Paseo iniciado!';
+        body = '${booking.walkerName ?? 'Tu paseador'} ya salió con tu mascota.';
+        break;
+      case 'completed':
+        // Completed → notify owner
+        targetUserId = booking.ownerUserId;
+        title = '¡Paseo completado!';
+        body = 'Tu mascota ya está de vuelta. ¿Cómo estuvo el servicio?';
+        break;
+      case 'pending':
+        // New booking → notify walker
+        targetUserId = booking.walkerUserId;
+        title = 'Nueva solicitud de paseo';
+        body = '${booking.ownerName ?? 'Un dueño'} quiere reservar tu servicio.';
+        break;
+      default:
+        return;
+    }
+
+    if (targetUserId == null) return;
+
+    SupabaseService.client.functions.invoke(
+      'send-push-notification',
+      body: {
+        'userId': targetUserId,
+        'title': title,
+        'body': body,
+        'data': {'bookingId': booking.id, 'status': status},
+      },
+    ).then((res) {
+      debugPrint('[BookingProvider] push sent: ${res.status} ${res.data}');
+    }).catchError((e) {
+      debugPrint('[BookingProvider] push error: $e');
+    });
   }
 
   void _setLoading(bool v) {

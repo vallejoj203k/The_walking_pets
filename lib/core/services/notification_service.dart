@@ -25,7 +25,20 @@ class NotificationService {
   Future<void> initialize() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    await _fcm.requestPermission(alert: true, badge: true, sound: true);
+    final settings = await _fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    debugPrint('[FCM] Permission: ${settings.authorizationStatus}');
+
+    // iOS: show notifications while app is in foreground
+    await _fcm.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -33,9 +46,16 @@ class NotificationService {
 
     const initSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
     );
-    await _localNotifications.initialize(initSettings);
+    await _localNotifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTap,
+    );
 
     FirebaseMessaging.onMessage.listen(_handleForeground);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleTap);
@@ -46,6 +66,7 @@ class NotificationService {
   void _handleForeground(RemoteMessage message) {
     final notification = message.notification;
     if (notification == null) return;
+
     _localNotifications.show(
       notification.hashCode,
       notification.title,
@@ -57,6 +78,12 @@ class NotificationService {
           channelDescription: _channel.description,
           importance: Importance.high,
           priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
     );
@@ -64,6 +91,10 @@ class NotificationService {
 
   void _handleTap(RemoteMessage message) {
     debugPrint('[FCM] Notification tapped: ${message.data}');
+  }
+
+  void _onNotificationTap(NotificationResponse response) {
+    debugPrint('[FCM] Local notification tapped: ${response.payload}');
   }
 
   Future<String?> getToken() async {
@@ -81,6 +112,19 @@ class NotificationService {
     try {
       final token = await getToken();
       if (token == null) return;
+      await _upsertToken(userId, token);
+
+      // Keep token fresh when FCM rotates it
+      _fcm.onTokenRefresh.listen((newToken) async {
+        await _upsertToken(userId, newToken);
+      });
+    } catch (e) {
+      debugPrint('[FCM] Error saving token: $e');
+    }
+  }
+
+  Future<void> _upsertToken(String userId, String token) async {
+    try {
       await SupabaseService.client.from('user_fcm_tokens').upsert({
         'user_id': userId,
         'token': token,
@@ -88,7 +132,7 @@ class NotificationService {
       }, onConflict: 'user_id');
       debugPrint('[FCM] Token saved for user $userId');
     } catch (e) {
-      debugPrint('[FCM] Error saving token: $e');
+      debugPrint('[FCM] Error upserting token: $e');
     }
   }
 }
