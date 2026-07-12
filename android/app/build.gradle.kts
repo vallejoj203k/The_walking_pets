@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.the_walking_pets"
+    namespace = "com.cocode.thewalkingpets"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.cocode.thewalkingpets"
+        applicationId = "com.cocode.thewalkingpets"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
