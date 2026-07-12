@@ -20,6 +20,15 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = System.getenv("CM_KEY_ALIAS") ?: "theWalkingPets"
+            keyPassword = System.getenv("CM_KEY_PASSWORD") ?: ""
+            storeFile = System.getenv("CM_KEYSTORE_PATH")?.let { file(it) }
+            storePassword = System.getenv("CM_KEYSTORE_PASSWORD") ?: ""
+        }
+    }
+
     defaultConfig {
         applicationId = "com.cocode.thewalkingpets"
         minSdk = flutter.minSdkVersion
@@ -30,7 +39,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
