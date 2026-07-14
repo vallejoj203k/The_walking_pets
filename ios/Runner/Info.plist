@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The Walking Pets usa tu ubicación para mostrar paseadores cercanos y rastrear el recorrido de tu mascota en tiempo real.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>The Walking Pets usa tu ubicación en segundo plano para que el dueño pueda seguir el recorrido de su mascota mientras el paseador tiene la app en segundo plano.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
