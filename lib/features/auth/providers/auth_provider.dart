@@ -35,6 +35,10 @@ class AuthProvider extends ChangeNotifier {
         _status = AuthStatus.unauthenticated;
         notifyListeners();
       }
+    }, onError: (e) {
+      debugPrint('[Auth] Error en authStateChanges: $e');
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
     });
   }
 
